@@ -806,7 +806,7 @@ void CTVCaption2::ProcessPacket(BYTE *pPacket)
                                (pPacket[9] << 1) |
                                (pPacket[8] << 9) |
                                (pPacket[7] << 17) |
-                               (static_cast<LONGLONG>(pPacket[6] << 25));
+                               (static_cast<LONGLONG>(pPacket[6]) << 25);
 
                 // PCRの連続性チェック
                 if (((0x200000000 + pcr - m_pcr) & 0x1ffffffff) >= 1000 * PCR_PER_MSEC) {
