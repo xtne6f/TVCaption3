@@ -320,5 +320,14 @@
     <ClCompile Include="PseudoOSD.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="aribcaption\src\decoder\b24_codesets.cpp">
+      <Filter>ソース ファイル\aribcaption\decoder</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\decoder\b24_colors.cpp">
+      <Filter>ソース ファイル\aribcaption\decoder</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\decoder\b24_drcs_conv.cpp">
+      <Filter>ソース ファイル\aribcaption\decoder</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -240,6 +240,9 @@
     <ClCompile Include="aribcaption\src\common\caption_capi.cpp" />
     <ClCompile Include="aribcaption\src\common\context.cpp" />
     <ClCompile Include="aribcaption\src\common\context_capi.cpp" />
+    <ClCompile Include="aribcaption\src\decoder\b24_codesets.cpp" />
+    <ClCompile Include="aribcaption\src\decoder\b24_colors.cpp" />
+    <ClCompile Include="aribcaption\src\decoder\b24_drcs_conv.cpp" />
     <ClCompile Include="aribcaption\src\decoder\decoder.cpp" />
     <ClCompile Include="aribcaption\src\decoder\decoder_capi.cpp" />
     <ClCompile Include="aribcaption\src\decoder\decoder_impl.cpp" />
