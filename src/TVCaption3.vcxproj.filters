@@ -222,8 +222,8 @@
     <ClInclude Include="aribcaption\include\aribcaption\aligned_alloc.hpp">
       <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
     </ClInclude>
-    <ClInclude Include="aribcaption\include\aribcc_config.h">
-      <Filter>ヘッダー ファイル\aribcaption</Filter>
+    <ClInclude Include="aribcc_config.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Util.hpp">
       <Filter>ヘッダー ファイル</Filter>

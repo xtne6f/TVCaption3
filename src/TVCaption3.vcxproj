@@ -184,7 +184,6 @@
     <ClInclude Include="aribcaption\include\aribcaption\image.hpp" />
     <ClInclude Include="aribcaption\include\aribcaption\renderer.h" />
     <ClInclude Include="aribcaption\include\aribcaption\renderer.hpp" />
-    <ClInclude Include="aribcaption\include\aribcc_config.h" />
     <ClInclude Include="aribcaption\src\base\always_inline.hpp" />
     <ClInclude Include="aribcaption\src\base\cfstr_helper.hpp" />
     <ClInclude Include="aribcaption\src\base\language_code.hpp" />
@@ -226,6 +225,7 @@
     <ClInclude Include="aribcaption\src\renderer\text_renderer_coretext.hpp" />
     <ClInclude Include="aribcaption\src\renderer\text_renderer_directwrite.hpp" />
     <ClInclude Include="aribcaption\src\renderer\text_renderer_freetype.hpp" />
+    <ClInclude Include="aribcc_config.h" />
     <ClInclude Include="OsdCompositor.h" />
     <ClInclude Include="PseudoOSD.hpp" />
     <ClInclude Include="TVCaption3.hpp" />
