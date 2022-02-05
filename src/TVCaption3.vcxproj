@@ -1,0 +1,268 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FE589A73-F9D1-454A-AFCB-0F2173EFE2AC}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>TVCaption3</RootNamespace>
+    <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)' == '15.0'">10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '15.0'">v141</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '16.0'">v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '15.0'">v141</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '16.0'">v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '15.0'">v141</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '16.0'">v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '15.0'">v141</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '16.0'">v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetExt>.tvtp</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetExt>.tvtp</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <TargetExt>.tvtp</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <TargetExt>.tvtp</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;TVCAPTION3_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4100</DisableSpecificWarnings>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>aribcaption\include;aribcaption\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>Exports.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;TVCAPTION3_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4100</DisableSpecificWarnings>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>aribcaption\include;aribcaption\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;TVCAPTION3_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4100</DisableSpecificWarnings>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>aribcaption\include;aribcaption\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>Exports.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;TVCAPTION3_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4100</DisableSpecificWarnings>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>aribcaption\include;aribcaption\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="aribcaption\include\aribcaption\aligned_alloc.hpp" />
+    <ClInclude Include="aribcaption\include\aribcaption\aribcaption.h" />
+    <ClInclude Include="aribcaption\include\aribcaption\aribcaption.hpp" />
+    <ClInclude Include="aribcaption\include\aribcaption\aribcc_export.h" />
+    <ClInclude Include="aribcaption\include\aribcaption\caption.h" />
+    <ClInclude Include="aribcaption\include\aribcaption\caption.hpp" />
+    <ClInclude Include="aribcaption\include\aribcaption\color.h" />
+    <ClInclude Include="aribcaption\include\aribcaption\color.hpp" />
+    <ClInclude Include="aribcaption\include\aribcaption\context.h" />
+    <ClInclude Include="aribcaption\include\aribcaption\context.hpp" />
+    <ClInclude Include="aribcaption\include\aribcaption\decoder.h" />
+    <ClInclude Include="aribcaption\include\aribcaption\decoder.hpp" />
+    <ClInclude Include="aribcaption\include\aribcaption\image.h" />
+    <ClInclude Include="aribcaption\include\aribcaption\image.hpp" />
+    <ClInclude Include="aribcaption\include\aribcaption\renderer.h" />
+    <ClInclude Include="aribcaption\include\aribcaption\renderer.hpp" />
+    <ClInclude Include="aribcaption\include\aribcc_config.h" />
+    <ClInclude Include="aribcaption\src\base\always_inline.hpp" />
+    <ClInclude Include="aribcaption\src\base\cfstr_helper.hpp" />
+    <ClInclude Include="aribcaption\src\base\language_code.hpp" />
+    <ClInclude Include="aribcaption\src\base\logger.hpp" />
+    <ClInclude Include="aribcaption\src\base\md5.h" />
+    <ClInclude Include="aribcaption\src\base\md5_helper.hpp" />
+    <ClInclude Include="aribcaption\src\base\result.hpp" />
+    <ClInclude Include="aribcaption\src\base\scoped_cfref.hpp" />
+    <ClInclude Include="aribcaption\src\base\scoped_com_initializer.hpp" />
+    <ClInclude Include="aribcaption\src\base\scoped_holder.hpp" />
+    <ClInclude Include="aribcaption\src\base\tinyxml2.h" />
+    <ClInclude Include="aribcaption\src\base\utf_helper.hpp" />
+    <ClInclude Include="aribcaption\src\base\wchar_helper.hpp" />
+    <ClInclude Include="aribcaption\src\decoder\b24_codesets.hpp" />
+    <ClInclude Include="aribcaption\src\decoder\b24_colors.hpp" />
+    <ClInclude Include="aribcaption\src\decoder\b24_controlsets.hpp" />
+    <ClInclude Include="aribcaption\src\decoder\b24_conv_tables.hpp" />
+    <ClInclude Include="aribcaption\src\decoder\b24_drcs_conv.hpp" />
+    <ClInclude Include="aribcaption\src\decoder\b24_gaiji_table.hpp" />
+    <ClInclude Include="aribcaption\src\decoder\b24_macros.hpp" />
+    <ClInclude Include="aribcaption\src\decoder\decoder_impl.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\alphablend.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\alphablend_generic.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\alphablend_x86.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\bitmap.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\canvas.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\drcs_renderer.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\font_provider.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\font_provider_android.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\font_provider_coretext.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\font_provider_directwrite.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\font_provider_fontconfig.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\font_provider_gdi.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\rect.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\region_image_rearranger.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\region_renderer.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\renderer_impl.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\text_renderer.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\text_renderer_coretext.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\text_renderer_directwrite.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\text_renderer_freetype.hpp" />
+    <ClInclude Include="OsdCompositor.h" />
+    <ClInclude Include="PseudoOSD.hpp" />
+    <ClInclude Include="TVCaption3.hpp" />
+    <ClInclude Include="TVTestPlugin.h" />
+    <ClInclude Include="Util.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="aribcaption\src\base\aligned_alloc.cpp" />
+    <ClCompile Include="aribcaption\src\base\logger.cpp" />
+    <ClCompile Include="aribcaption\src\base\md5.c" />
+    <ClCompile Include="aribcaption\src\base\tinyxml2.cpp" />
+    <ClCompile Include="aribcaption\src\common\caption_capi.cpp" />
+    <ClCompile Include="aribcaption\src\common\context.cpp" />
+    <ClCompile Include="aribcaption\src\common\context_capi.cpp" />
+    <ClCompile Include="aribcaption\src\decoder\decoder.cpp" />
+    <ClCompile Include="aribcaption\src\decoder\decoder_capi.cpp" />
+    <ClCompile Include="aribcaption\src\decoder\decoder_impl.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\bitmap.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\canvas.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\drcs_renderer.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\font_provider.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\font_provider_directwrite.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\font_provider_gdi.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\image_capi.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\region_image_rearranger.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\region_renderer.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\renderer.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\renderer_capi.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\renderer_impl.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\text_renderer.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\text_renderer_directwrite.cpp" />
+    <ClCompile Include="OsdCompositor.cpp" />
+    <ClCompile Include="PseudoOSD.cpp" />
+    <ClCompile Include="TVCaption3.cpp" />
+    <ClCompile Include="Util.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

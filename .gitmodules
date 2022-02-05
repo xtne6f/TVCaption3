@@ -1,0 +1,3 @@
+[submodule "src/aribcaption"]
+	path = src/aribcaption
+	url = git@github.com:xqq/libaribcaption.git

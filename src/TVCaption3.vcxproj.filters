@@ -1,0 +1,324 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ソース ファイル">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="ヘッダー ファイル">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="リソース ファイル">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\aribcaption">
+      <UniqueIdentifier>{d7ade09d-8c4c-45e6-bdf0-e03cb8cd339d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\aribcaption">
+      <UniqueIdentifier>{5aca7be0-0850-46e1-88d7-ed2b76ab515b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\aribcaption\base">
+      <UniqueIdentifier>{a6077a99-5090-4545-9b69-43dbcb20e56c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\aribcaption\decoder">
+      <UniqueIdentifier>{64ecc71c-ad15-4252-a4db-ec011d004ed4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\aribcaption\renderer">
+      <UniqueIdentifier>{529b08d5-213c-46ab-9c6a-d9d16ea576d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\aribcaption\base">
+      <UniqueIdentifier>{e49aee4b-a3d1-49a3-baf4-08fbb7ec33c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\aribcaption\decoder">
+      <UniqueIdentifier>{ace27d12-a7e1-44c1-9710-9d7e6fca3667}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\aribcaption\renderer">
+      <UniqueIdentifier>{2dbd543d-1f00-420d-bb38-e8842d8df567}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\aribcaption\common">
+      <UniqueIdentifier>{e9cfa611-ff7b-4140-86ac-dc5f1039e782}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\aribcaption\aribcaption">
+      <UniqueIdentifier>{bc8ba62d-f980-4e1d-84bc-e90431fe02b0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="aribcaption\src\base\result.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\scoped_cfref.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\scoped_com_initializer.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\scoped_holder.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\tinyxml2.h">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\utf_helper.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\wchar_helper.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\always_inline.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\cfstr_helper.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\language_code.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\logger.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\md5.h">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\base\md5_helper.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\base</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\decoder\b24_conv_tables.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\decoder\b24_drcs_conv.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\decoder\b24_gaiji_table.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\decoder\b24_macros.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\decoder\decoder_impl.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\decoder\b24_codesets.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\decoder\b24_colors.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\decoder\b24_controlsets.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\decoder</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\font_provider_directwrite.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\font_provider_fontconfig.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\font_provider_gdi.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\rect.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\region_image_rearranger.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\region_renderer.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\renderer_impl.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\text_renderer.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\text_renderer_coretext.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\text_renderer_directwrite.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\text_renderer_freetype.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\alphablend.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\alphablend_generic.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\alphablend_x86.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\bitmap.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\canvas.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\drcs_renderer.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\font_provider.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\font_provider_android.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\font_provider_coretext.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="TVTestPlugin.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="TVCaption3.hpp">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\aribcaption.h">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\aribcaption.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\aribcc_export.h">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\caption.h">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\caption.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\color.h">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\color.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\context.h">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\context.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\decoder.h">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\decoder.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\image.h">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\image.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\renderer.h">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\renderer.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcaption\aligned_alloc.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="aribcaption\include\aribcc_config.h">
+      <Filter>ヘッダー ファイル\aribcaption</Filter>
+    </ClInclude>
+    <ClInclude Include="Util.hpp">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="OsdCompositor.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="PseudoOSD.hpp">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="aribcaption\src\base\md5.c">
+      <Filter>ソース ファイル\aribcaption\base</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\base\aligned_alloc.cpp">
+      <Filter>ソース ファイル\aribcaption\base</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\base\logger.cpp">
+      <Filter>ソース ファイル\aribcaption\base</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\base\tinyxml2.cpp">
+      <Filter>ソース ファイル\aribcaption\base</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\common\context.cpp">
+      <Filter>ソース ファイル\aribcaption\common</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\common\context_capi.cpp">
+      <Filter>ソース ファイル\aribcaption\common</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\common\caption_capi.cpp">
+      <Filter>ソース ファイル\aribcaption\common</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\decoder\decoder_capi.cpp">
+      <Filter>ソース ファイル\aribcaption\decoder</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\decoder\decoder_impl.cpp">
+      <Filter>ソース ファイル\aribcaption\decoder</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\decoder\decoder.cpp">
+      <Filter>ソース ファイル\aribcaption\decoder</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\font_provider_directwrite.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\font_provider_gdi.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\image_capi.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\region_image_rearranger.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\region_renderer.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\renderer.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\renderer_capi.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\renderer_impl.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\text_renderer.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\text_renderer_directwrite.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\bitmap.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\canvas.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\drcs_renderer.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\font_provider.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="TVCaption3.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Util.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="OsdCompositor.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="PseudoOSD.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

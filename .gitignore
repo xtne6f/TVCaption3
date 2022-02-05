@@ -1,0 +1,15 @@
+*
+!*/
+!*.bmp
+!*.c
+!*.cpp
+!*.def
+!*.h
+!*.hpp
+!*.ini
+!*.rc
+!*.sln
+!*.txt
+!*.vcxproj
+!*.vcxproj.filters
+!.gitignore
