@@ -675,7 +675,7 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
                                 }
                                 CPseudoOSD &osd = *m_pOsdList[index][m_osdShowCount[index] + osdPrepareCount++];
                                 osd.Create(m_hwndContainer, g_hinstDLL);
-                                osd.SetImage(hbm, it->dst_x, it->dst_y, it->width, it->height);
+                                osd.SetImage(hbm, it->dst_x + rcVideo.left, it->dst_y + rcVideo.top, it->width, it->height);
                             }
                             else {
                                 if (m_paintingMethod == 3) {
