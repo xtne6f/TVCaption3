@@ -420,18 +420,17 @@ BOOL CALLBACK CTVCaption2::WindowMsgCallback(HWND hwnd, UINT uMsg, WPARAM wParam
 }
 
 
-void CTVCaption2::HideOsds(int index)
+void CTVCaption2::HideOsds(int index, size_t osdPrepareCount)
 {
     DEBUG_OUT(TEXT(__FUNCTION__) TEXT("()\n"));
 
     for (; m_osdShowCount[index] > 0; --m_osdShowCount[index]) {
         m_pOsdList[index].front()->Hide();
-        // 最後尾に移動
-        for (size_t i = 0; i < m_pOsdList[index].size() - 1; ++i) {
+        // 表示待ちOSDの直後に移動
+        for (size_t i = 0; i < m_osdShowCount[index] + osdPrepareCount - 1; ++i) {
             m_pOsdList[index][i].swap(m_pOsdList[index][i + 1]);
         }
     }
-    m_clearPts[index] = -1;
 }
 
 void CTVCaption2::DeleteTextures()
@@ -445,8 +444,10 @@ void CTVCaption2::DeleteTextures()
 
 void CTVCaption2::HideAllOsds()
 {
-    HideOsds(STREAM_CAPTION);
-    HideOsds(STREAM_SUPERIMPOSE);
+    for (int index = 0; index < STREAM_MAX; ++index) {
+        HideOsds(index);
+        m_clearPts[index] = -1;
+    }
     DeleteTextures();
 }
 
@@ -532,7 +533,7 @@ LRESULT CALLBACK CTVCaption2::PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wPara
         pThis->m_hwndContainer = pThis->FindVideoContainer();
         if (pThis->m_hwndContainer) {
             if (pThis->m_paintingMethod == 2) {
-                for (int i = 0; i < OSD_PRE_CREATE_NUM; ++i) {
+                for (size_t i = 0; i < OSD_PRE_CREATE_NUM; ++i) {
                     pThis->m_pOsdList[STREAM_CAPTION].push_back(std::unique_ptr<CPseudoOSD>(new CPseudoOSD));
                     pThis->m_pOsdList[STREAM_CAPTION].back()->Create(pThis->m_hwndContainer, g_hinstDLL);
                 }
@@ -560,6 +561,7 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             // 期限付き字幕を消去
             if (ptsPcrDiff >= 0x100000000) {
                 HideOsds(index);
+                m_clearPts[index] = -1;
                 if (m_paintingMethod == 3) {
                     if (m_osdCompositor.DeleteTexture(0, index + 1)) {
                         fTextureModified = true;
@@ -622,9 +624,11 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
         if (status == aribcaption::DecodeStatus::kGotCaption &&
             GetVideoContainerLayout(m_hwndContainer, nullptr, &rcVideo))
         {
+            bool fHideOsds = false;
             if (decodeResult.caption->flags & aribcaption::CaptionFlags::kCaptionFlagsClearScreen) {
                 // 消去
-                HideOsds(index);
+                fHideOsds = true;
+                m_clearPts[index] = -1;
                 if (m_osdCompositor.DeleteTexture(0, index + 1)) {
                     fTextureModified = true;
                 }
@@ -638,12 +642,12 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
 
             m_captionRenderer[index]->SetFrameSize(rcVideo.right - rcVideo.left, rcVideo.bottom - rcVideo.top);
             m_captionRenderer[index]->AppendCaption(std::move(*decodeResult.caption));
+
+            size_t osdPrepareCount = 0;
             aribcaption::RenderResult renderResult;
             aribcaption::RenderStatus renderStatus = m_captionRenderer[index]->Render(pts, renderResult);
             if (renderStatus == aribcaption::RenderStatus::kGotImage) {
                 // 追加
-                size_t osdPrepareCount = 0;
-
                 for (auto it = renderResult.images.begin(); it != renderResult.images.end(); ++it) {
                     if (it->width > 0 && it->height > 0 && it->pixel_format == aribcaption::PixelFormat::kRGBA8888) {
                         void *pBits;
@@ -671,7 +675,24 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
 
                             if (m_paintingMethod == 2) {
                                 if (m_osdShowCount[index] + osdPrepareCount >= m_pOsdList[index].size()) {
-                                    m_pOsdList[index].push_back(std::unique_ptr<CPseudoOSD>(new CPseudoOSD));
+                                    // OSDが足りない
+                                    if (m_pOsdList[index].size() >= OSD_MAX_CREATE_NUM) {
+                                        // 最前列から奪う
+                                        if (m_osdShowCount[index] > 0) {
+                                            --m_osdShowCount[index];
+                                        }
+                                        else {
+                                            --osdPrepareCount;
+                                        }
+                                        m_pOsdList[index].front()->Hide();
+                                        for (size_t i = 0; i < m_pOsdList[index].size() - 1; ++i) {
+                                            m_pOsdList[index][i].swap(m_pOsdList[index][i + 1]);
+                                        }
+                                    }
+                                    else {
+                                        // 作成
+                                        m_pOsdList[index].push_back(std::unique_ptr<CPseudoOSD>(new CPseudoOSD));
+                                    }
                                 }
                                 CPseudoOSD &osd = *m_pOsdList[index][m_osdShowCount[index] + osdPrepareCount++];
                                 osd.Create(m_hwndContainer, g_hinstDLL);
@@ -688,11 +709,14 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
                         }
                     }
                 }
+            }
 
-                // ちらつき防止のため表示処理をまとめる
-                for (; osdPrepareCount > 0; --osdPrepareCount, ++m_osdShowCount[index]) {
-                    m_pOsdList[index][m_osdShowCount[index]]->Show();
-                }
+            // ちらつき防止のため表示処理をまとめる
+            if (fHideOsds) {
+                HideOsds(index, osdPrepareCount);
+            }
+            for (; osdPrepareCount > 0; --osdPrepareCount, ++m_osdShowCount[index]) {
+                m_pOsdList[index][m_osdShowCount[index]]->Show();
             }
         }
     }

@@ -16,8 +16,10 @@
 // プラグインクラス
 class CTVCaption2 : public TVTest::CTVTestPlugin
 {
+    // 作成できるOSDの最大数
+    static const size_t OSD_MAX_CREATE_NUM = 50;
     // 事前に作成しておくOSDの数(作成時にウィンドウが前面にくるので、気になるなら増やす)
-    static const int OSD_PRE_CREATE_NUM = 12;
+    static const size_t OSD_PRE_CREATE_NUM = 12;
     static const int STREAM_MAX = 2;
     enum STREAM_INDEX {
         STREAM_CAPTION,
@@ -39,7 +41,7 @@ private:
     void LoadSettings();
     static LRESULT CALLBACK EventCallback(UINT Event, LPARAM lParam1, LPARAM lParam2, void *pClientData);
     static BOOL CALLBACK WindowMsgCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *pResult, void *pUserData);
-    void HideOsds(int index);
+    void HideOsds(int index, size_t osdPrepareCount = 0);
     void DeleteTextures();
     void HideAllOsds();
     void DestroyOsds();
