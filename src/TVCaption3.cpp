@@ -2,7 +2,6 @@
 #define NOMINMAX
 #include <windows.h>
 #include "TVCaption3.hpp"
-#include "wchar.h"
 #include "aribcaption/src/base/wchar_helper.hpp"
 
 namespace
