@@ -3,6 +3,7 @@
 #include <windows.h>
 #include "TVCaption3.hpp"
 #include "aribcaption/src/base/wchar_helper.hpp"
+#include "resource.h"
 
 namespace
 {
@@ -15,6 +16,8 @@ const UINT WM_APP_RESET_OSDS = WM_APP + 4;
 const TCHAR INFO_PLUGIN_NAME[] = TEXT("TVCaption3");
 const TCHAR INFO_DESCRIPTION[] = TEXT("字幕を表示");
 const TCHAR TV_CAPTION2_WINDOW_CLASS[] = TEXT("TVTest TVCaption3");
+
+const TCHAR ROMSOUND_ROM_ENABLED[] = TEXT("!00:!01:!02:!03:!04:!05:!06:!07:!08:!09:!10:!11:!12:!13:!14:!15:::");
 
 enum {
     TIMER_ID_DONE_MOVE,
@@ -309,6 +312,8 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
             DestroyWindow(m_hwndPainting);
             m_hwndPainting = nullptr;
         }
+        // 内蔵音再生停止
+        PlaySound(nullptr, nullptr, 0);
 
         for (int index = 0; index < STREAM_MAX; ++index) {
             m_captionRenderer[index] = nullptr;
@@ -324,6 +329,7 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
 void CTVCaption2::LoadSettings()
 {
     std::vector<TCHAR> vbuf = GetPrivateProfileSectionBuffer(TEXT("Settings"), m_iniPath.c_str());
+    TCHAR val[SETTING_VALUE_MAX];
 
     LPCTSTR buf = vbuf.data();
     GetBufferedProfileString(buf, TEXT("FaceName"), TEXT(""), m_szFaceName, _countof(m_szFaceName));
@@ -333,6 +339,51 @@ void CTVCaption2::LoadSettings()
     m_strokeWidth       = GetBufferedProfileInt(buf, TEXT("StrokeWidth"), 30);
     m_ornStrokeWidth    = GetBufferedProfileInt(buf, TEXT("OrnStrokeWidth"), 50);
     m_fIgnoreSmall      = GetBufferedProfileInt(buf, TEXT("IgnoreSmall"), 0) != 0;
+    GetBufferedProfileString(buf, TEXT("RomSoundList"), TEXT(""), val, _countof(val));
+    m_romSoundList = val;
+}
+
+
+// 内蔵音再生する
+bool CTVCaption2::PlayRomSound(int index) const
+{
+    if (index < 0 || m_romSoundList.empty() || m_romSoundList[0] == TEXT(';')) return false;
+
+    size_t i = 0;
+    size_t j = m_romSoundList.find(TEXT(':'));
+    for (; index > 0 && j != tstring::npos; --index) {
+        i = j + 1;
+        j = m_romSoundList.find(TEXT(':'), i);
+    }
+    if (index>0) return false;
+
+    tstring id(m_romSoundList, i, j - i);
+
+    if (!id.empty() && id[0] == TEXT('!')) {
+        // 定義済みのサウンド
+        if (id.size() == 3) {
+            LPCTSTR romFound = _tcsstr(ROMSOUND_ROM_ENABLED, id.c_str());
+            if (romFound) {
+                // 組み込みサウンド
+                size_t romIndex = (romFound - ROMSOUND_ROM_ENABLED) / 4;
+                // 今のところ2～4は組み込んでいないので1とみなす
+                if (2 <= romIndex && romIndex <= 4) {
+                    romIndex = 1;
+                }
+                if (romIndex <= 13) {
+                    return PlaySound(MAKEINTRESOURCE(IDW_ROM_00 + romIndex), g_hinstDLL,
+                                     SND_ASYNC | SND_NODEFAULT | SND_RESOURCE) != FALSE;
+                }
+                return false;
+            }
+        }
+        return PlaySound(&id.c_str()[1], nullptr, SND_ASYNC | SND_NODEFAULT | SND_ALIAS) != FALSE;
+    }
+    else if (!id.empty()) {
+        tstring path = m_iniPath.substr(0, m_iniPath.rfind(TEXT('.'))) + TEXT('\\') + id + TEXT(".wav");
+        return PlaySound(path.c_str(), nullptr, SND_ASYNC | SND_NODEFAULT | SND_FILENAME) != FALSE;
+    }
+    return false;
 }
 
 
@@ -347,6 +398,7 @@ LRESULT CALLBACK CTVCaption2::EventCallback(UINT Event, LPARAM lParam1, LPARAM l
     case TVTest::EVENT_PLUGINENABLE:
         // プラグインの有効状態が変化した
         if (pThis->EnablePlugin(lParam1 != 0)) {
+            pThis->PlayRomSound(lParam1 != 0 ? 17 : 18);
             return TRUE;
         }
         return 0;
@@ -637,6 +689,9 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             {
                 // 期限付き
                 m_clearPts[index] = (pts + decodeResult.caption->wait_duration * PCR_PER_MSEC) & 0x1ffffffff;
+            }
+            if (decodeResult.caption->has_builtin_sound) {
+                PlayRomSound(decodeResult.caption->builtin_sound_id);
             }
 
             m_captionRenderer[index]->SetFrameSize(rcVideo.right - rcVideo.left, rcVideo.bottom - rcVideo.top);

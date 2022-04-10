@@ -20,6 +20,8 @@ class CTVCaption2 : public TVTest::CTVTestPlugin
     static const size_t OSD_MAX_CREATE_NUM = 50;
     // 事前に作成しておくOSDの数(作成時にウィンドウが前面にくるので、気になるなら増やす)
     static const size_t OSD_PRE_CREATE_NUM = 12;
+    // 設定値の最大読み込み文字数
+    static const int SETTING_VALUE_MAX = 2048;
     static const int STREAM_MAX = 2;
     enum STREAM_INDEX {
         STREAM_CAPTION,
@@ -39,6 +41,7 @@ private:
     int GetVideoPid();
     bool EnablePlugin(bool fEnable);
     void LoadSettings();
+    bool PlayRomSound(int index) const;
     static LRESULT CALLBACK EventCallback(UINT Event, LPARAM lParam1, LPARAM lParam2, void *pClientData);
     static BOOL CALLBACK WindowMsgCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *pResult, void *pUserData);
     void HideOsds(int index, size_t osdPrepareCount = 0);
@@ -59,6 +62,7 @@ private:
     int m_strokeWidth;
     int m_ornStrokeWidth;
     bool m_fIgnoreSmall;
+    tstring m_romSoundList;
 
     // 字幕解析と描画
     std::unique_ptr<aribcaption::Context> m_captionContext[STREAM_MAX];

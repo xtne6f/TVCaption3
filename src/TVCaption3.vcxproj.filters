@@ -234,6 +234,9 @@
     <ClInclude Include="PseudoOSD.hpp">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aribcaption\src\base\md5.c">
@@ -329,5 +332,10 @@
     <ClCompile Include="aribcaption\src\decoder\b24_drcs_conv.cpp">
       <Filter>ソース ファイル\aribcaption\decoder</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TVCaption3.rc">
+      <Filter>リソース ファイル</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
