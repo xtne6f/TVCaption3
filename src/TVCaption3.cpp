@@ -247,42 +247,10 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
         // 設定の読み込み
         LoadSettings();
 
-        for (int index = 0; index < STREAM_MAX; ++index) {
-            m_captionContext[index] = std::make_unique<aribcaption::Context>();
-            m_captionContext[index]->SetLogcatCallback([this](aribcaption::LogLevel level, const char *message) {
-                TCHAR log[256];
-                std::copy(message, message + min(strlen(message) + 1, _countof(log)), log);
-                m_pApp->AddLog(log, level == aribcaption::LogLevel::kError ? TVTest::LOG_TYPE_ERROR :
-                                    level == aribcaption::LogLevel::kWarning ? TVTest::LOG_TYPE_WARNING : TVTest::LOG_TYPE_INFORMATION);
-            });
-
-            m_captionDecoder[index] = std::make_unique<aribcaption::Decoder>(*m_captionContext[index]);
-            if (!m_captionDecoder[index]->Initialize(aribcaption::EncodingScheme::kAuto,
-                                                     index == STREAM_CAPTION ? aribcaption::CaptionType::kCaption :
-                                                                               aribcaption::CaptionType::kSuperimpose))
-            {
-                return false;
-            }
-
-            m_captionRenderer[index] = std::make_unique<aribcaption::Renderer>(*m_captionContext[index]);
-            if (!m_captionRenderer[index]->Initialize(index == STREAM_CAPTION ? aribcaption::CaptionType::kCaption :
-                                                                                aribcaption::CaptionType::kSuperimpose))
-            {
-                return false;
-            }
-
-            // 各種の描画オプションを適用
-            if (m_szFaceName[0]) {
-                m_captionRenderer[index]->SetLanguageSpecificFontFamily(aribcaption::ThreeCC("jpn"),
-                                                                        {aribcaption::wchar::WideStringToUTF8(m_szFaceName)});
-            }
-            m_captionRenderer[index]->SetForceStrokeText(m_strokeWidth > 0);
-            m_captionRenderer[index]->SetStrokeWidth(static_cast<float>((m_strokeWidth > 0 ? m_strokeWidth : m_ornStrokeWidth) / 10.0));
-            m_captionRenderer[index]->SetForceNoRuby(m_fIgnoreSmall);
-        }
-
+        m_fProfileC = false;
+        if (ResetCaptionContext(STREAM_CAPTION) &&
+            ResetCaptionContext(STREAM_SUPERIMPOSE))
         {
-            m_fProfileC = false;
             m_caption1Pes.second.clear();
             m_caption2Pes.second.clear();
             m_caption1PesQueue.clear();
@@ -597,6 +565,48 @@ LRESULT CALLBACK CTVCaption2::PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wPara
 }
 
 
+bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
+{
+    auto context = std::make_unique<aribcaption::Context>();
+    context->SetLogcatCallback([this](aribcaption::LogLevel level, const char *message) {
+        TCHAR log[256];
+        std::copy(message, message + min(strlen(message) + 1, _countof(log)), log);
+        m_pApp->AddLog(log, level == aribcaption::LogLevel::kError ? TVTest::LOG_TYPE_ERROR :
+                            level == aribcaption::LogLevel::kWarning ? TVTest::LOG_TYPE_WARNING : TVTest::LOG_TYPE_INFORMATION);
+    });
+
+    auto decoder = std::make_unique<aribcaption::Decoder>(*context);
+    if (!decoder->Initialize(aribcaption::EncodingScheme::kAuto,
+                             index == STREAM_CAPTION ? aribcaption::CaptionType::kCaption :
+                                                       aribcaption::CaptionType::kSuperimpose))
+    {
+        return false;
+    }
+
+    auto renderer = std::make_unique<aribcaption::Renderer>(*context);
+    if (!renderer->Initialize(index == STREAM_CAPTION ? aribcaption::CaptionType::kCaption :
+                                                        aribcaption::CaptionType::kSuperimpose))
+    {
+        return false;
+    }
+
+    // 各種の描画オプションを適用
+    if (m_szFaceName[0]) {
+        renderer->SetLanguageSpecificFontFamily(aribcaption::ThreeCC("jpn"),
+                                                {aribcaption::wchar::WideStringToUTF8(m_szFaceName)});
+    }
+    renderer->SetForceStrokeText(m_strokeWidth > 0);
+    renderer->SetStrokeWidth(static_cast<float>((m_strokeWidth > 0 ? m_strokeWidth : m_ornStrokeWidth) / 10.0));
+    renderer->SetForceNoRuby(m_fIgnoreSmall);
+    decoder->SetProfile(m_fProfileC ? aribcaption::Profile::kProfileC : aribcaption::Profile::kProfileA);
+
+    m_captionContext[index].swap(context);
+    m_captionDecoder[index].swap(decoder);
+    m_captionRenderer[index].swap(renderer);
+    return true;
+}
+
+
 void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
 {
     bool fTextureModified = false;
@@ -669,8 +679,15 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
         }
 
         aribcaption::DecodeResult decodeResult;
-        aribcaption::DecodeStatus status = m_captionDecoder[index]->Decode(pes.data() + payloadPos,
-                                                                           pes.size() - payloadPos, pts, decodeResult);
+        auto status = aribcaption::DecodeStatus::kError;
+        try {
+            status = m_captionDecoder[index]->Decode(pes.data() + payloadPos, pes.size() - payloadPos, pts, decodeResult);
+        }
+        catch (...) {
+            m_pApp->AddLog(TEXT("aribcaption::Decode() raised exception"), TVTest::LOG_TYPE_ERROR);
+            ResetCaptionContext(index);
+        }
+
         RECT rcVideo;
         if (status == aribcaption::DecodeStatus::kGotCaption &&
             GetVideoContainerLayout(m_hwndContainer, nullptr, &rcVideo))
@@ -699,7 +716,15 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
 
             size_t osdPrepareCount = 0;
             aribcaption::RenderResult renderResult;
-            aribcaption::RenderStatus renderStatus = m_captionRenderer[index]->Render(pts, renderResult);
+            auto renderStatus = aribcaption::RenderStatus::kError;
+            try {
+                renderStatus = m_captionRenderer[index]->Render(pts, renderResult);
+            }
+            catch (...) {
+                m_pApp->AddLog(TEXT("aribcaption::Render() raised exception"), TVTest::LOG_TYPE_ERROR);
+                ResetCaptionContext(index);
+            }
+
             if (renderStatus == aribcaption::RenderStatus::kGotImage) {
                 // 追加
                 for (auto it = renderResult.images.begin(); it != renderResult.images.end(); ++it) {
