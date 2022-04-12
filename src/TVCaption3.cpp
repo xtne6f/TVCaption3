@@ -227,6 +227,22 @@ bool CTVCaption2::GetVideoContainerLayout(HWND hwndContainer, RECT *pRect, RECT 
 }
 
 
+// 字幕の表示方法に応じて映像サイズまたはGetVideoContainerLayout()の結果を得る
+bool CTVCaption2::GetVideoSurfaceRect(HWND hwndContainer, RECT *pVideoRect, RECT *pExVideoRect)
+{
+    if (m_paintingMethod == 3) {
+        RECT rc;
+        if (m_osdCompositor.GetSurfaceRect(&rc)) {
+            // 位置はわからないが正確な映像サイズを得た
+            if (pVideoRect) *pVideoRect = rc;
+            if (pExVideoRect) *pExVideoRect = rc;
+            return true;
+        }
+    }
+    return GetVideoContainerLayout(hwndContainer, nullptr, pVideoRect, pExVideoRect);
+}
+
+
 // 映像PIDを取得する(無い場合は-1)
 // プラグインAPIが内部でストリームをロックするので、デッドロックを完成させないように注意
 int CTVCaption2::GetVideoPid()
@@ -690,7 +706,7 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
 
         RECT rcVideo;
         if (status == aribcaption::DecodeStatus::kGotCaption &&
-            GetVideoContainerLayout(m_hwndContainer, nullptr, &rcVideo))
+            GetVideoSurfaceRect(m_hwndContainer, &rcVideo))
         {
             bool fHideOsds = false;
             if (decodeResult.caption->flags & aribcaption::CaptionFlags::kCaptionFlagsClearScreen) {
@@ -807,9 +823,9 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
 
 void CTVCaption2::OnSize(STREAM_INDEX index)
 {
-    if (m_osdShowCount[index] > 0) {
+    if (m_paintingMethod != 3 && m_osdShowCount[index] > 0) {
         RECT rc;
-        if (GetVideoContainerLayout(m_hwndContainer, &rc, nullptr)) {
+        if (GetVideoContainerLayout(m_hwndContainer, &rc)) {
             // とりあえずはみ出ないようにする
             for (size_t i = 0; i < m_osdShowCount[index]; ++i) {
                 int left, top, width, height;

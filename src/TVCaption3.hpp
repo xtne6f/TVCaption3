@@ -38,6 +38,7 @@ private:
     HWND GetFullscreenWindow();
     HWND FindVideoContainer();
     bool GetVideoContainerLayout(HWND hwndContainer, RECT *pRect, RECT *pVideoRect = nullptr, RECT *pExVideoRect = nullptr);
+    bool GetVideoSurfaceRect(HWND hwndContainer, RECT *pVideoRect = nullptr, RECT *pExVideoRect = nullptr);
     int GetVideoPid();
     bool EnablePlugin(bool fEnable);
     void LoadSettings();
