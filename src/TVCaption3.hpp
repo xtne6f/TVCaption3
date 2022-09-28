@@ -89,6 +89,7 @@ private:
     size_t m_osdShowCount[STREAM_MAX];
     LONGLONG m_clearPts[STREAM_MAX];
     bool m_fNeedtoShow;
+    bool m_fShowLang2;
     std::atomic_bool m_fProfileC;
 
     // ストリーム解析

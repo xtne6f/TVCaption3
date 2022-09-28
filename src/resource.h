@@ -3,6 +3,9 @@
 #endif
 
 #define IDD_OPTIONS                             100
+#define IDB_ICON                                110
+#define IDB_SWITCH_LANG                         111
+#define IDB_SWITCH_SETTING                      112
 #define IDW_ROM_00                              150
 #define IDW_ROM_01                              151
 #define IDW_ROM_05                              155

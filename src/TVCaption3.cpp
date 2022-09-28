@@ -25,6 +25,11 @@ enum {
     TIMER_ID_DONE_SIZE,
     TIMER_ID_FLASHING_TEXTURE,
 };
+
+enum {
+    ID_COMMAND_SWITCH_LANG,
+    ID_COMMAND_SWITCH_SETTING,
+};
 }
 
 CTVCaption2::CTVCaption2()
@@ -37,6 +42,7 @@ CTVCaption2::CTVCaption2()
     , m_hwndPainting(nullptr)
     , m_hwndContainer(nullptr)
     , m_fNeedtoShow(false)
+    , m_fShowLang2(false)
     , m_fProfileC(false)
     , m_pcr(0)
     , m_procCapTick(0)
@@ -104,6 +110,33 @@ bool CTVCaption2::Initialize()
         bool fSetHook = m_pApp->GetVersion() < TVTest::MakeVersion(0, 9, 0);
         if (m_osdCompositor.Initialize(fSetHook)) {
             m_pApp->AddLog(L"OsdCompositorを初期化しました。");
+        }
+    }
+
+    // アイコンを登録
+    m_pApp->RegisterPluginIconFromResource(g_hinstDLL, MAKEINTRESOURCE(IDB_ICON));
+
+    // コマンドを登録
+    TVTest::PluginCommandInfo ciList[2];
+    ciList[0].ID = ID_COMMAND_SWITCH_LANG;
+    ciList[0].State = TVTest::PLUGIN_COMMAND_STATE_DISABLED;
+    ciList[0].pszText = L"SwitchLang";
+    ciList[0].pszName = L"字幕言語切り替え";
+    ciList[0].hbmIcon = static_cast<HBITMAP>(LoadImage(g_hinstDLL, MAKEINTRESOURCE(IDB_SWITCH_LANG), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    ciList[1].ID = ID_COMMAND_SWITCH_SETTING;
+    ciList[1].State = TVTest::PLUGIN_COMMAND_STATE_DISABLED;
+    ciList[1].pszText = L"SwitchSetting";
+    ciList[1].pszName = L"表示設定切り替え";
+    ciList[1].hbmIcon = static_cast<HBITMAP>(LoadImage(g_hinstDLL, MAKEINTRESOURCE(IDB_SWITCH_SETTING), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    for (int i = 0; i < _countof(ciList); ++i) {
+        ciList[i].Size = sizeof(ciList[0]);
+        ciList[i].Flags = ciList[i].hbmIcon ? TVTest::PLUGIN_COMMAND_FLAG_ICONIZE : 0;
+        ciList[i].pszDescription = ciList[i].pszName;
+        if (!m_pApp->RegisterPluginCommand(&ciList[i])) {
+            m_pApp->RegisterCommand(ciList[i].ID, ciList[i].pszText, ciList[i].pszName);
+        }
+        if (ciList[i].hbmIcon) {
+            DeleteObject(ciList[i].hbmIcon);
         }
     }
 
@@ -270,6 +303,7 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
         // 設定の読み込み
         LoadSettings();
 
+        m_fShowLang2 = false;
         m_fProfileC = false;
         if (ResetCaptionContext(STREAM_CAPTION) &&
             ResetCaptionContext(STREAM_SUPERIMPOSE))
@@ -288,6 +322,9 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
                 // コールバックの登録
                 m_pApp->SetStreamCallback(0, StreamCallback, this);
                 m_pApp->SetWindowMessageCallback(WindowMsgCallback, this);
+
+                m_pApp->SetPluginCommandState(ID_COMMAND_SWITCH_LANG, 0);
+                m_pApp->SetPluginCommandState(ID_COMMAND_SWITCH_SETTING, 0);
                 return true;
             }
         }
@@ -311,6 +348,9 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
             m_captionDecoder[index] = nullptr;
             m_captionContext[index] = nullptr;
         }
+
+        m_pApp->SetPluginCommandState(ID_COMMAND_SWITCH_LANG, TVTest::PLUGIN_COMMAND_STATE_DISABLED);
+        m_pApp->SetPluginCommandState(ID_COMMAND_SWITCH_SETTING, TVTest::PLUGIN_COMMAND_STATE_DISABLED);
         return true;
     }
 }
@@ -519,6 +559,28 @@ LRESULT CALLBACK CTVCaption2::EventCallback(UINT Event, LPARAM lParam1, LPARAM l
             }
         }
         break;
+    case TVTest::EVENT_COMMAND:
+        // コマンドが選択された
+        if (pThis->m_pApp->IsPluginEnabled()) {
+            switch (static_cast<int>(lParam1)) {
+            case ID_COMMAND_SWITCH_LANG:
+                pThis->m_fShowLang2 = !pThis->m_fShowLang2;
+                SendMessage(pThis->m_hwndPainting, WM_APP_RESET_CAPTION, 0, 0);
+                pThis->m_pApp->SetPluginCommandState(ID_COMMAND_SWITCH_LANG, pThis->m_fShowLang2 ? TVTest::PLUGIN_COMMAND_STATE_CHECKED : 0);
+                {
+                    TCHAR str[32];
+                    _stprintf_s(str, TEXT("第%d言語に切り替えました。"), pThis->m_fShowLang2 ? 2 : 1);
+                    pThis->m_pApp->AddLog(str);
+                }
+                break;
+            case ID_COMMAND_SWITCH_SETTING:
+                pThis->HideAllOsds();
+                pThis->SwitchSettings();
+                pThis->PlayRomSound(16);
+                break;
+            }
+        }
+        return TRUE;
     case TVTest::EVENT_FILTERGRAPH_INITIALIZED:
         // フィルタグラフの初期化終了
         pThis->m_osdCompositor.OnFilterGraphInitialized(reinterpret_cast<const TVTest::FilterGraphInfo*>(lParam1)->pGraphBuilder);
@@ -645,6 +707,8 @@ LRESULT CALLBACK CTVCaption2::PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wPara
             pThis->m_caption2PesQueue.clear();
         }
         for (int index = 0; index < STREAM_MAX; ++index) {
+            pThis->m_captionDecoder[index]->SwitchLanguage(pThis->m_fShowLang2 ? aribcaption::LanguageId::kSecond :
+                                                                                 aribcaption::LanguageId::kFirst);
             pThis->m_captionDecoder[index]->SetProfile(pThis->m_fProfileC ? aribcaption::Profile::kProfileC :
                                                                             aribcaption::Profile::kProfileA);
         }
@@ -721,6 +785,7 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
     renderer->SetForceStrokeText(m_strokeWidth > 0);
     renderer->SetStrokeWidth(static_cast<float>((m_strokeWidth > 0 ? m_strokeWidth : m_ornStrokeWidth) / 10.0));
     renderer->SetForceNoRuby(m_fIgnoreSmall);
+    decoder->SwitchLanguage(m_fShowLang2 ? aribcaption::LanguageId::kSecond : aribcaption::LanguageId::kFirst);
     decoder->SetProfile(m_fProfileC ? aribcaption::Profile::kProfileC : aribcaption::Profile::kProfileA);
 
     m_captionContext[index].swap(context);
