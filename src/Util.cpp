@@ -53,6 +53,13 @@ int GetBufferedProfileInt(LPCTSTR lpBuff, LPCTSTR lpKeyName, int nDefault)
     return endp == sz ? nDefault : nRet;
 }
 
+BOOL WritePrivateProfileInt(LPCTSTR lpAppName, LPCTSTR lpKeyName, int value, LPCTSTR lpFileName)
+{
+    TCHAR sz[16];
+    _stprintf_s(sz, TEXT("%d"), value);
+    return WritePrivateProfileString(lpAppName, lpKeyName, sz, lpFileName);
+}
+
 DWORD GetLongModuleFileName(HMODULE hModule, LPTSTR lpFileName, DWORD nSize)
 {
     TCHAR longOrShortName[MAX_PATH];
@@ -62,6 +69,47 @@ DWORD GetLongModuleFileName(HMODULE hModule, LPTSTR lpFileName, DWORD nSize)
         if (nRet < nSize) return nRet;
     }
     return 0;
+}
+
+void AddToComboBoxList(HWND hDlg, int id, const LPCTSTR *pList)
+{
+    for (; *pList; ++pList) {
+        SendDlgItemMessage(hDlg, id, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(*pList));
+    }
+}
+
+namespace
+{
+int CALLBACK EnumAddFaceNameProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *, int FontType, LPARAM lParam)
+{
+    static_cast<void>(FontType);
+    if (lpelfe->elfLogFont.lfFaceName[0] != TEXT('@')) {
+        std::vector<LOGFONT> &lfList = *reinterpret_cast<std::vector<LOGFONT>*>(lParam);
+        for (size_t i = 0; i < lfList.size(); ++i) {
+            if (!_tcscmp(lfList[i].lfFaceName, lpelfe->elfLogFont.lfFaceName)) {
+                return TRUE;
+            }
+        }
+        lfList.push_back(lpelfe->elfLogFont);
+    }
+    return TRUE;
+}
+}
+
+void AddFaceNameToComboBoxList(HWND hDlg, int id)
+{
+    HDC hdc = GetDC(hDlg);
+    LOGFONT lf;
+    lf.lfCharSet = DEFAULT_CHARSET;
+    lf.lfPitchAndFamily = 0;
+    lf.lfFaceName[0] = 0;
+    std::vector<LOGFONT> lfList;
+    EnumFontFamiliesEx(hdc, &lf, reinterpret_cast<FONTENUMPROC>(EnumAddFaceNameProc),
+                       reinterpret_cast<LPARAM>(&lfList), 0);
+    ReleaseDC(hDlg, hdc);
+    for (size_t i = 0; i < lfList.size(); ++i) {
+        SendDlgItemMessage(hDlg, id, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(lfList[i].lfFaceName));
+    }
 }
 
 namespace

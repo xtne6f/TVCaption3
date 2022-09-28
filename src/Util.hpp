@@ -26,7 +26,10 @@ static const size_t READ_FILE_MAX_SIZE = 64 * 1024 * 1024;
 std::vector<TCHAR> GetPrivateProfileSectionBuffer(LPCTSTR lpAppName, LPCTSTR lpFileName);
 void GetBufferedProfileString(LPCTSTR lpBuff, LPCTSTR lpKeyName, LPCTSTR lpDefault, LPTSTR lpReturnedString, DWORD nSize);
 int GetBufferedProfileInt(LPCTSTR lpBuff, LPCTSTR lpKeyName, int nDefault);
+BOOL WritePrivateProfileInt(LPCTSTR lpAppName, LPCTSTR lpKeyName, int value, LPCTSTR lpFileName);
 DWORD GetLongModuleFileName(HMODULE hModule, LPTSTR lpFileName, DWORD nSize);
+void AddToComboBoxList(HWND hDlg, int id, const LPCTSTR *pList);
+void AddFaceNameToComboBoxList(HWND hDlg, int id);
 inline bool Is1SegPmtPid(int pid) { return 0x1FC8 <= pid && pid <= 0x1FCF; }
 
 static const int PCR_PER_MSEC = 90;

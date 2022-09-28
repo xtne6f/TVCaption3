@@ -18,6 +18,7 @@ const TCHAR INFO_DESCRIPTION[] = TEXT("字幕を表示");
 const TCHAR TV_CAPTION2_WINDOW_CLASS[] = TEXT("TVTest TVCaption3");
 
 const TCHAR ROMSOUND_ROM_ENABLED[] = TEXT("!00:!01:!02:!03:!04:!05:!06:!07:!08:!09:!10:!11:!12:!13:!14:!15:::");
+const TCHAR ROMSOUND_CUST_ENABLED[] = TEXT("00:01:02:03:04:05:06:07:08:09:10:11:12:13:14:15:16:17:18");
 
 enum {
     TIMER_ID_DONE_MOVE,
@@ -27,10 +28,12 @@ enum {
 }
 
 CTVCaption2::CTVCaption2()
-    : m_paintingMethod(0)
+    : m_settingsIndex(0)
+    , m_paintingMethod(0)
     , m_strokeWidth(0)
     , m_ornStrokeWidth(0)
     , m_fIgnoreSmall(false)
+    , m_fInitializeSettingsDlg(false)
     , m_hwndPainting(nullptr)
     , m_hwndContainer(nullptr)
     , m_fNeedtoShow(false)
@@ -43,9 +46,13 @@ CTVCaption2::CTVCaption2()
     , m_caption1Pid(-1)
     , m_caption2Pid(-1)
 {
-    m_szFaceName[0] = 0;
+    m_szFaceName[0][0] = 0;
+    m_szFaceName[1][0] = 0;
+    m_szFaceName[2][0] = 0;
 
     for (int index = 0; index < STREAM_MAX; ++index) {
+        m_showFlags[index] = 0;
+        m_delayTime[index] = 0;
         m_osdShowCount[index] = 0;
         m_clearPts[index] = -1;
     }
@@ -314,10 +321,21 @@ void CTVCaption2::LoadSettings()
 {
     std::vector<TCHAR> vbuf = GetPrivateProfileSectionBuffer(TEXT("Settings"), m_iniPath.c_str());
     TCHAR val[SETTING_VALUE_MAX];
+    m_settingsIndex = GetBufferedProfileInt(vbuf.data(), TEXT("SettingsIndex"), 0);
 
+    // ここからはセクション固有
+    if (m_settingsIndex > 0) {
+        TCHAR section[32];
+        _stprintf_s(section, TEXT("Settings%d"), m_settingsIndex);
+        vbuf = GetPrivateProfileSectionBuffer(section, m_iniPath.c_str());
+    }
     LPCTSTR buf = vbuf.data();
-    GetBufferedProfileString(buf, TEXT("FaceName"), TEXT(""), m_szFaceName, _countof(m_szFaceName));
+    GetBufferedProfileString(buf, TEXT("FaceName"), TEXT(""), m_szFaceName[0], _countof(m_szFaceName[0]));
+    GetBufferedProfileString(buf, TEXT("FaceName1"), TEXT(""), m_szFaceName[1], _countof(m_szFaceName[1]));
+    GetBufferedProfileString(buf, TEXT("FaceName2"), TEXT(""), m_szFaceName[2], _countof(m_szFaceName[2]));
     m_paintingMethod    = GetBufferedProfileInt(buf, TEXT("Method"), 2);
+    m_showFlags[STREAM_CAPTION]     = GetBufferedProfileInt(buf, TEXT("ShowFlags"), 65535);
+    m_showFlags[STREAM_SUPERIMPOSE] = GetBufferedProfileInt(buf, TEXT("ShowFlagsSuper"), 65535);
     m_delayTime[STREAM_CAPTION]     = GetBufferedProfileInt(buf, TEXT("DelayTime"), 450);
     m_delayTime[STREAM_SUPERIMPOSE] = GetBufferedProfileInt(buf, TEXT("DelayTimeSuper"), 0);
     m_strokeWidth       = GetBufferedProfileInt(buf, TEXT("StrokeWidth"), 30);
@@ -325,6 +343,87 @@ void CTVCaption2::LoadSettings()
     m_fIgnoreSmall      = GetBufferedProfileInt(buf, TEXT("IgnoreSmall"), 0) != 0;
     GetBufferedProfileString(buf, TEXT("RomSoundList"), TEXT(""), val, _countof(val));
     m_romSoundList = val;
+}
+
+
+// 設定の保存
+void CTVCaption2::SaveSettings() const
+{
+    TCHAR section[32] = TEXT("Settings");
+    WritePrivateProfileInt(section, TEXT("SettingsIndex"), m_settingsIndex, m_iniPath.c_str());
+
+    // ここからはセクション固有
+    if (m_settingsIndex > 0) {
+        _stprintf_s(section, TEXT("Settings%d"), m_settingsIndex);
+    }
+    WritePrivateProfileString(section, TEXT("FaceName"), m_szFaceName[0], m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("FaceName1"), m_szFaceName[1], m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("FaceName2"), m_szFaceName[2], m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("Method"), m_paintingMethod, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("ShowFlags"), m_showFlags[STREAM_CAPTION], m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("ShowFlagsSuper"), m_showFlags[STREAM_SUPERIMPOSE], m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("DelayTime"), m_delayTime[STREAM_CAPTION], m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("DelayTimeSuper"), m_delayTime[STREAM_SUPERIMPOSE], m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("StrokeWidth"), m_strokeWidth, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("OrnStrokeWidth"), m_ornStrokeWidth, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("IgnoreSmall"), m_fIgnoreSmall, m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("RomSoundList"), m_romSoundList.c_str(), m_iniPath.c_str());
+}
+
+
+// 設定の切り替え
+// specIndex<0のとき次の設定に切り替え
+void CTVCaption2::SwitchSettings(int specIndex)
+{
+    m_settingsIndex = specIndex < 0 ? m_settingsIndex + 1 : specIndex;
+    TCHAR section[32];
+    _stprintf_s(section, TEXT("Settings%d"), m_settingsIndex);
+    if (GetPrivateProfileInt(section, TEXT("Method"), 0, m_iniPath.c_str()) == 0) {
+        m_settingsIndex = 0;
+    }
+    WritePrivateProfileInt(TEXT("Settings"), TEXT("SettingsIndex"), m_settingsIndex, m_iniPath.c_str());
+    LoadSettings();
+}
+
+
+void CTVCaption2::AddSettings()
+{
+    WritePrivateProfileInt(TEXT("Settings"), TEXT("SettingsIndex"), GetSettingsCount(), m_iniPath.c_str());
+    LoadSettings();
+    SaveSettings();
+}
+
+
+void CTVCaption2::DeleteSettings()
+{
+    int settingsCount = GetSettingsCount();
+    if (settingsCount >= 2) {
+        int lastIndex = m_settingsIndex;
+        // 1つずつ手前にシフト
+        for (int i = m_settingsIndex; i < settingsCount - 1; ++i) {
+            WritePrivateProfileInt(TEXT("Settings"), TEXT("SettingsIndex"), i + 1, m_iniPath.c_str());
+            LoadSettings();
+            m_settingsIndex = i;
+            SaveSettings();
+        }
+        // 末尾セクションを削除
+        TCHAR section[32];
+        _stprintf_s(section, TEXT("Settings%d"), settingsCount - 1);
+        WritePrivateProfileString(section, nullptr, nullptr, m_iniPath.c_str());
+        SwitchSettings(min(lastIndex, settingsCount - 2));
+    }
+}
+
+
+int CTVCaption2::GetSettingsCount() const
+{
+    for (int i = 1; ; ++i) {
+        TCHAR section[32];
+        _stprintf_s(section, TEXT("Settings%d"), i);
+        if (GetPrivateProfileInt(section, TEXT("Method"), 0, m_iniPath.c_str()) == 0) {
+            return i;
+        }
+    }
 }
 
 
@@ -386,6 +485,9 @@ LRESULT CALLBACK CTVCaption2::EventCallback(UINT Event, LPARAM lParam1, LPARAM l
             return TRUE;
         }
         return 0;
+    case TVTest::EVENT_PLUGINSETTINGS:
+        // プラグインの設定を行う
+        return pThis->PluginSettings(reinterpret_cast<HWND>(lParam1));
     case TVTest::EVENT_FULLSCREENCHANGE:
         // 全画面表示状態が変化した
         if (pThis->m_pApp->IsPluginEnabled()) {
@@ -607,9 +709,14 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
     }
 
     // 各種の描画オプションを適用
-    if (m_szFaceName[0]) {
-        renderer->SetLanguageSpecificFontFamily(aribcaption::ThreeCC("jpn"),
-                                                {aribcaption::wchar::WideStringToUTF8(m_szFaceName)});
+    std::vector<std::string> fontFamily;
+    for (size_t i = 0; i < _countof(m_szFaceName); ++i) {
+        if (m_szFaceName[i][0]) {
+            fontFamily.push_back(aribcaption::wchar::WideStringToUTF8(m_szFaceName[i]));
+        }
+    }
+    if (!fontFamily.empty()) {
+        renderer->SetLanguageSpecificFontFamily(aribcaption::ThreeCC("jpn"), fontFamily);
     }
     renderer->SetForceStrokeText(m_strokeWidth > 0);
     renderer->SetStrokeWidth(static_cast<float>((m_strokeWidth > 0 ? m_strokeWidth : m_ornStrokeWidth) / 10.0));
@@ -724,7 +831,9 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
                 m_clearPts[index] = (pts + decodeResult.caption->wait_duration * PCR_PER_MSEC) & 0x1ffffffff;
             }
             if (decodeResult.caption->has_builtin_sound) {
-                PlayRomSound(decodeResult.caption->builtin_sound_id);
+                if (m_showFlags[index] != 0) {
+                    PlayRomSound(decodeResult.caption->builtin_sound_id);
+                }
             }
 
             m_captionRenderer[index]->SetFrameSize(rcVideo.right - rcVideo.left, rcVideo.bottom - rcVideo.top);
@@ -734,7 +843,9 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             aribcaption::RenderResult renderResult;
             auto renderStatus = aribcaption::RenderStatus::kError;
             try {
-                renderStatus = m_captionRenderer[index]->Render(pts, renderResult);
+                if (m_showFlags[index] != 0) {
+                    renderStatus = m_captionRenderer[index]->Render(pts, renderResult);
+                }
             }
             catch (...) {
                 m_pApp->AddLog(TEXT("aribcaption::Render() raised exception"), TVTest::LOG_TYPE_ERROR);
@@ -1000,6 +1111,219 @@ void CTVCaption2::ProcessPacket(BYTE *pPacket)
             }
         }
     }
+}
+
+
+// プラグインの設定を行う
+bool CTVCaption2::PluginSettings(HWND hwndOwner)
+{
+    if (!m_pApp->IsPluginEnabled()) {
+        MessageBox(hwndOwner, TEXT("プラグインを有効にしてください。"), INFO_PLUGIN_NAME, MB_ICONERROR | MB_OK);
+        return false;
+    }
+    if (m_pApp->QueryMessage(TVTest::MESSAGE_SHOWDIALOG)) {
+        TVTest::ShowDialogInfo info;
+        info.Flags = 0;
+        info.hinst = g_hinstDLL;
+        info.pszTemplate = MAKEINTRESOURCE(IDD_OPTIONS);
+        info.pMessageFunc = TVTestSettingsDlgProc;
+        info.pClientData = this;
+        info.hwndOwner = hwndOwner;
+        m_pApp->ShowDialog(&info);
+    }
+    else {
+        DialogBoxParam(g_hinstDLL, MAKEINTRESOURCE(IDD_OPTIONS), hwndOwner, SettingsDlgProc, reinterpret_cast<LPARAM>(this));
+    }
+    return true;
+}
+
+
+// 設定ダイアログプロシージャ
+INT_PTR CALLBACK CTVCaption2::SettingsDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    if (uMsg == WM_INITDIALOG) {
+        SetWindowLongPtr(hDlg, GWLP_USERDATA, lParam);
+    }
+    CTVCaption2 *pThis = reinterpret_cast<CTVCaption2*>(GetWindowLongPtr(hDlg, GWLP_USERDATA));
+    return pThis ? pThis->ProcessSettingsDlg(hDlg, uMsg, wParam, lParam) : FALSE;
+}
+
+
+// プラグインAPI経由の設定ダイアログプロシージャ
+INT_PTR CALLBACK CTVCaption2::TVTestSettingsDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam, void *pClientData)
+{
+    return static_cast<CTVCaption2*>(pClientData)->ProcessSettingsDlg(hDlg, uMsg, wParam, lParam);
+}
+
+
+void CTVCaption2::InitializeSettingsDlg(HWND hDlg)
+{
+    m_fInitializeSettingsDlg = true;
+
+    CheckDlgButton(hDlg, IDC_CHECK_OSD,
+        GetPrivateProfileInt(TEXT("Settings"), TEXT("EnOsdCompositor"), 0, m_iniPath.c_str()) != 0 ? BST_CHECKED : BST_UNCHECKED);
+
+    int settingsCount = GetSettingsCount();
+    SendDlgItemMessage(hDlg, IDC_COMBO_SETTINGS, CB_RESETCONTENT, 0, 0);
+    for (int i = 0; i < settingsCount; ++i) {
+        TCHAR text[32];
+        _stprintf_s(text, TEXT("設定%d"), i);
+        SendDlgItemMessage(hDlg, IDC_COMBO_SETTINGS, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text));
+    }
+    SendDlgItemMessage(hDlg, IDC_COMBO_SETTINGS, CB_SETCURSEL, m_settingsIndex, 0);
+
+    for (int i = 0; i < 3; ++i) {
+        HWND hItem = GetDlgItem(hDlg, IDC_COMBO_FACE + i);
+        SendMessage(hItem, CB_RESETCONTENT, 0, 0);
+        SendMessage(hItem, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(TEXT(" (指定なし)")));
+        AddFaceNameToComboBoxList(hDlg, IDC_COMBO_FACE + i);
+        if (!m_szFaceName[i][0]) {
+            SendMessage(hItem, CB_SETCURSEL, 0, 0);
+        }
+        else if (SendMessage(hItem, CB_SELECTSTRING, 0, reinterpret_cast<LPARAM>(m_szFaceName[i])) == CB_ERR) {
+            SendMessage(hItem, CB_SETCURSEL, SendMessage(hItem, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(m_szFaceName[i])), 0);
+        }
+    }
+
+    static const LPCTSTR METHOD_LIST[] = { TEXT("2-レイヤードウィンドウ"), TEXT("3-映像と合成"), nullptr };
+    SendDlgItemMessage(hDlg, IDC_COMBO_METHOD, CB_RESETCONTENT, 0, 0);
+    AddToComboBoxList(hDlg, IDC_COMBO_METHOD, METHOD_LIST);
+    SendDlgItemMessage(hDlg, IDC_COMBO_METHOD, CB_SETCURSEL, min(max(m_paintingMethod - 2, 0), 1), 0);
+
+    CheckDlgButton(hDlg, IDC_CHECK_CAPTION, m_showFlags[STREAM_CAPTION] ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(hDlg, IDC_CHECK_SUPERIMPOSE, m_showFlags[STREAM_SUPERIMPOSE] ? BST_CHECKED : BST_UNCHECKED);
+    SetDlgItemInt(hDlg, IDC_EDIT_DELAY, m_delayTime[STREAM_CAPTION], TRUE);
+
+    SetDlgItemInt(hDlg, IDC_EDIT_STROKE_WIDTH, m_strokeWidth, FALSE);
+    SetDlgItemInt(hDlg, IDC_EDIT_ORN_STROKE_WIDTH, m_ornStrokeWidth, FALSE);
+
+    CheckDlgButton(hDlg, IDC_CHECK_IGNORE_SMALL, m_fIgnoreSmall ? BST_CHECKED : BST_UNCHECKED);
+    bool fCheckRomSound = !m_romSoundList.empty() && m_romSoundList[0] != TEXT(';');
+    CheckDlgButton(hDlg, IDC_CHECK_ROMSOUND, fCheckRomSound ? BST_CHECKED : BST_UNCHECKED);
+    EnableWindow(GetDlgItem(hDlg, IDC_CHECK_CUST_ROMSOUND), fCheckRomSound);
+    CheckDlgButton(hDlg, IDC_CHECK_CUST_ROMSOUND, fCheckRomSound && m_romSoundList != ROMSOUND_ROM_ENABLED ? BST_CHECKED : BST_UNCHECKED);
+
+    m_fInitializeSettingsDlg = false;
+}
+
+
+INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    static_cast<void>(lParam);
+    bool fSave = false;
+    bool fReDisp = false;
+
+    switch (uMsg) {
+    case WM_INITDIALOG:
+        InitializeSettingsDlg(hDlg);
+        return TRUE;
+    case WM_COMMAND:
+        // 初期化中の無駄な再帰を省く
+        if (m_fInitializeSettingsDlg) {
+            break;
+        }
+        switch (LOWORD(wParam)) {
+        case IDOK:
+        case IDCANCEL:
+            HideAllOsds();
+            EndDialog(hDlg, LOWORD(wParam));
+            break;
+        case IDC_CHECK_OSD:
+            WritePrivateProfileInt(TEXT("Settings"), TEXT("EnOsdCompositor"),
+                IsDlgButtonChecked(hDlg, IDC_CHECK_OSD) != BST_UNCHECKED, m_iniPath.c_str());
+            break;
+        case IDC_COMBO_SETTINGS:
+            if (HIWORD(wParam) == CBN_SELCHANGE) {
+                HideAllOsds();
+                SwitchSettings(static_cast<int>(SendDlgItemMessage(hDlg, IDC_COMBO_SETTINGS, CB_GETCURSEL, 0, 0)));
+                InitializeSettingsDlg(hDlg);
+                fReDisp = true;
+            }
+            break;
+        case IDC_SETTINGS_ADD:
+            HideAllOsds();
+            AddSettings();
+            InitializeSettingsDlg(hDlg);
+            fReDisp = true;
+            break;
+        case IDC_SETTINGS_DELETE:
+            HideAllOsds();
+            DeleteSettings();
+            InitializeSettingsDlg(hDlg);
+            fReDisp = true;
+            break;
+        case IDC_COMBO_FACE:
+        case IDC_COMBO_FACE1:
+        case IDC_COMBO_FACE2:
+            if (HIWORD(wParam) == CBN_SELCHANGE) {
+                int i = LOWORD(wParam) - IDC_COMBO_FACE;
+                GetDlgItemText(hDlg, IDC_COMBO_FACE, m_szFaceName[i], _countof(m_szFaceName[0]));
+                if (m_szFaceName[i][0] == TEXT(' ') && m_szFaceName[i][1] == TEXT('(')) {
+                    m_szFaceName[i][0] = 0;
+                }
+                fSave = fReDisp = true;
+            }
+            break;
+        case IDC_COMBO_METHOD:
+            if (HIWORD(wParam) == CBN_SELCHANGE) {
+                HideAllOsds();
+                m_paintingMethod = static_cast<int>(SendDlgItemMessage(hDlg, IDC_COMBO_METHOD, CB_GETCURSEL, 0, 0));
+                m_paintingMethod = min(max(m_paintingMethod, 0), 1) + 2;
+                fSave = fReDisp = true;
+            }
+            break;
+        case IDC_CHECK_CAPTION:
+            HideAllOsds();
+            m_showFlags[STREAM_CAPTION] = IsDlgButtonChecked(hDlg, IDC_CHECK_CAPTION) != BST_UNCHECKED ? 65535 : 0;
+            fSave = fReDisp = true;
+            break;
+        case IDC_CHECK_SUPERIMPOSE:
+            HideAllOsds();
+            m_showFlags[STREAM_SUPERIMPOSE] = IsDlgButtonChecked(hDlg, IDC_CHECK_SUPERIMPOSE) != BST_UNCHECKED ? 65535 : 0;
+            fSave = fReDisp = true;
+            break;
+        case IDC_EDIT_DELAY:
+            if (HIWORD(wParam) == EN_CHANGE) {
+                m_delayTime[STREAM_CAPTION] = GetDlgItemInt(hDlg, IDC_EDIT_DELAY, nullptr, TRUE);
+                fSave = true;
+            }
+            break;
+        case IDC_EDIT_STROKE_WIDTH:
+        case IDC_EDIT_ORN_STROKE_WIDTH:
+            if (HIWORD(wParam) == EN_CHANGE) {
+                m_strokeWidth = GetDlgItemInt(hDlg, IDC_EDIT_STROKE_WIDTH, nullptr, FALSE);
+                m_ornStrokeWidth = GetDlgItemInt(hDlg, IDC_EDIT_ORN_STROKE_WIDTH, nullptr, FALSE);
+                fSave = fReDisp = true;
+            }
+            break;
+        case IDC_CHECK_IGNORE_SMALL:
+            m_fIgnoreSmall = IsDlgButtonChecked(hDlg, IDC_CHECK_IGNORE_SMALL) != BST_UNCHECKED;
+            fSave = fReDisp = true;
+            break;
+        case IDC_CHECK_ROMSOUND:
+            EnableWindow(GetDlgItem(hDlg, IDC_CHECK_CUST_ROMSOUND),
+                         IsDlgButtonChecked(hDlg, IDC_CHECK_ROMSOUND) != BST_UNCHECKED);
+            // FALL THROUGH!
+        case IDC_CHECK_CUST_ROMSOUND:
+            m_romSoundList = IsDlgButtonChecked(hDlg, IDC_CHECK_ROMSOUND) == BST_UNCHECKED ? TEXT("") :
+                             IsDlgButtonChecked(hDlg, IDC_CHECK_CUST_ROMSOUND) != BST_UNCHECKED ? ROMSOUND_CUST_ENABLED :
+                             ROMSOUND_ROM_ENABLED;
+            fSave = true;
+            break;
+        default:
+            return FALSE;
+        }
+        if (fSave) {
+            SaveSettings();
+        }
+        if (fReDisp) {
+            HideAllOsds();
+            ResetCaptionContext(STREAM_CAPTION);
+            ResetCaptionContext(STREAM_SUPERIMPOSE);
+        }
+        return TRUE;
+    }
+    return FALSE;
 }
 
 

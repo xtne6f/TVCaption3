@@ -42,6 +42,11 @@ private:
     int GetVideoPid();
     bool EnablePlugin(bool fEnable);
     void LoadSettings();
+    void SaveSettings() const;
+    void SwitchSettings(int specIndex = -1);
+    void AddSettings();
+    void DeleteSettings();
+    int GetSettingsCount() const;
     bool PlayRomSound(int index) const;
     static LRESULT CALLBACK EventCallback(UINT Event, LPARAM lParam1, LPARAM lParam2, void *pClientData);
     static BOOL CALLBACK WindowMsgCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *pResult, void *pUserData);
@@ -55,16 +60,24 @@ private:
     void OnSize(STREAM_INDEX index);
     static BOOL CALLBACK StreamCallback(BYTE *pData, void *pClientData);
     void ProcessPacket(BYTE *pPacket);
+    bool PluginSettings(HWND hwndOwner);
+    static INT_PTR CALLBACK SettingsDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    static INT_PTR CALLBACK TVTestSettingsDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam, void *pClientData);
+    void InitializeSettingsDlg(HWND hDlg);
+    INT_PTR ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     // 設定
     tstring m_iniPath;
-    TCHAR m_szFaceName[LF_FACESIZE];
+    TCHAR m_szFaceName[3][LF_FACESIZE];
+    int m_settingsIndex;
     int m_paintingMethod;
+    int m_showFlags[STREAM_MAX];
     int m_delayTime[STREAM_MAX];
     int m_strokeWidth;
     int m_ornStrokeWidth;
     bool m_fIgnoreSmall;
     tstring m_romSoundList;
+    bool m_fInitializeSettingsDlg;
 
     // 字幕解析と描画
     std::unique_ptr<aribcaption::Context> m_captionContext[STREAM_MAX];
