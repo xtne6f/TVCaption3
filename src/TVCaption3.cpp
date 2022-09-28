@@ -1337,7 +1337,7 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
         case IDC_COMBO_FACE2:
             if (HIWORD(wParam) == CBN_SELCHANGE) {
                 int i = LOWORD(wParam) - IDC_COMBO_FACE;
-                GetDlgItemText(hDlg, IDC_COMBO_FACE, m_szFaceName[i], _countof(m_szFaceName[0]));
+                GetDlgItemText(hDlg, IDC_COMBO_FACE + i, m_szFaceName[i], _countof(m_szFaceName[0]));
                 if (m_szFaceName[i][0] == TEXT(' ') && m_szFaceName[i][1] == TEXT('(')) {
                     m_szFaceName[i][0] = 0;
                 }
