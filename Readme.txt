@@ -36,6 +36,8 @@ ShowFlags / ShowFlagsSuper
 DelayTime / DelayTimeSuper*
     字幕/文字スーパーを受け取ってから表示するまでの遅延時間をミリ秒で指定
     # [=-5000]から[=5000]まで。
+NoBackground
+    背景を常に透明にする[=1]かどうか
 StrokeWidth
     字幕文の縁取りの幅の10倍
     # [=0]より大きいとき常に縁取ります。
@@ -44,6 +46,12 @@ OrnStrokeWidth
     # [=0]以上で指定します。
     # 字幕データ内で明示的に縁取りを指示されているときの幅です。
     # StrokeWidthが0より大きいときは無視されます。
+ReplaceFullAlnum
+    英数字を半角置換する[=1]かどうか
+ReplaceDrcs
+    DRCS図形を文字に置換する[=1]かどうか
+    # DRCS(Dynamic Redefinable Character Set)図形を対応する文字にできるだけ置換
+    # します。組み込みの置換テーブルが使われます。
 IgnoreSmall
     振り仮名らしきものを除外する[=1]かどうか
 RomSoundList*

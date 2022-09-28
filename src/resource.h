@@ -28,8 +28,11 @@
 #define IDC_CHECK_CAPTION                       1011
 #define IDC_CHECK_SUPERIMPOSE                   1012
 #define IDC_EDIT_DELAY                          1013
+#define IDC_CHECK_NO_BACKGROUND                 1016
 #define IDC_EDIT_STROKE_WIDTH                   1023
 #define IDC_EDIT_ORN_STROKE_WIDTH               1024
+#define IDC_CHECK_REPLACE_FULL_ALNUM            1025
+#define IDC_CHECK_REPLACE_DRCS                  1026
 #define IDC_CHECK_IGNORE_SMALL                  1030
 #define IDC_CHECK_ROMSOUND                      1032
 #define IDC_CHECK_CUST_ROMSOUND                 1040

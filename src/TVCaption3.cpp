@@ -35,8 +35,11 @@ enum {
 CTVCaption2::CTVCaption2()
     : m_settingsIndex(0)
     , m_paintingMethod(0)
+    , m_fNoBackground(false)
     , m_strokeWidth(0)
     , m_ornStrokeWidth(0)
+    , m_fReplaceFullAlnum(false)
+    , m_fReplaceDrcs(false)
     , m_fIgnoreSmall(false)
     , m_fInitializeSettingsDlg(false)
     , m_hwndPainting(nullptr)
@@ -378,8 +381,11 @@ void CTVCaption2::LoadSettings()
     m_showFlags[STREAM_SUPERIMPOSE] = GetBufferedProfileInt(buf, TEXT("ShowFlagsSuper"), 65535);
     m_delayTime[STREAM_CAPTION]     = GetBufferedProfileInt(buf, TEXT("DelayTime"), 450);
     m_delayTime[STREAM_SUPERIMPOSE] = GetBufferedProfileInt(buf, TEXT("DelayTimeSuper"), 0);
+    m_fNoBackground     = GetBufferedProfileInt(buf, TEXT("NoBackground"), 0) != 0;
     m_strokeWidth       = GetBufferedProfileInt(buf, TEXT("StrokeWidth"), 30);
     m_ornStrokeWidth    = GetBufferedProfileInt(buf, TEXT("OrnStrokeWidth"), 50);
+    m_fReplaceFullAlnum = GetBufferedProfileInt(buf, TEXT("ReplaceFullAlnum"), 0) != 0;
+    m_fReplaceDrcs      = GetBufferedProfileInt(buf, TEXT("ReplaceDrcs"), 0) != 0;
     m_fIgnoreSmall      = GetBufferedProfileInt(buf, TEXT("IgnoreSmall"), 0) != 0;
     GetBufferedProfileString(buf, TEXT("RomSoundList"), TEXT(""), val, _countof(val));
     m_romSoundList = val;
@@ -404,8 +410,11 @@ void CTVCaption2::SaveSettings() const
     WritePrivateProfileInt(section, TEXT("ShowFlagsSuper"), m_showFlags[STREAM_SUPERIMPOSE], m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("DelayTime"), m_delayTime[STREAM_CAPTION], m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("DelayTimeSuper"), m_delayTime[STREAM_SUPERIMPOSE], m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("NoBackground"), m_fNoBackground, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("StrokeWidth"), m_strokeWidth, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("OrnStrokeWidth"), m_ornStrokeWidth, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("ReplaceFullAlnum"), m_fReplaceFullAlnum, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("ReplaceDrcs"), m_fReplaceDrcs, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("IgnoreSmall"), m_fIgnoreSmall, m_iniPath.c_str());
     WritePrivateProfileString(section, TEXT("RomSoundList"), m_romSoundList.c_str(), m_iniPath.c_str());
 }
@@ -782,9 +791,12 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
     if (!fontFamily.empty()) {
         renderer->SetLanguageSpecificFontFamily(aribcaption::ThreeCC("jpn"), fontFamily);
     }
+    renderer->SetForceNoBackground(m_fNoBackground);
     renderer->SetForceStrokeText(m_strokeWidth > 0);
     renderer->SetStrokeWidth(static_cast<float>((m_strokeWidth > 0 ? m_strokeWidth : m_ornStrokeWidth) / 10.0));
+    renderer->SetReplaceDRCS(m_fReplaceDrcs);
     renderer->SetForceNoRuby(m_fIgnoreSmall);
+    decoder->SetReplaceMSZFullWidthAlphanumeric(m_fReplaceFullAlnum);
     decoder->SwitchLanguage(m_fShowLang2 ? aribcaption::LanguageId::kSecond : aribcaption::LanguageId::kFirst);
     decoder->SetProfile(m_fProfileC ? aribcaption::Profile::kProfileC : aribcaption::Profile::kProfileA);
 
@@ -1258,10 +1270,13 @@ void CTVCaption2::InitializeSettingsDlg(HWND hDlg)
     CheckDlgButton(hDlg, IDC_CHECK_CAPTION, m_showFlags[STREAM_CAPTION] ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(hDlg, IDC_CHECK_SUPERIMPOSE, m_showFlags[STREAM_SUPERIMPOSE] ? BST_CHECKED : BST_UNCHECKED);
     SetDlgItemInt(hDlg, IDC_EDIT_DELAY, m_delayTime[STREAM_CAPTION], TRUE);
+    CheckDlgButton(hDlg, IDC_CHECK_NO_BACKGROUND, m_fNoBackground ? BST_CHECKED : BST_UNCHECKED);
 
     SetDlgItemInt(hDlg, IDC_EDIT_STROKE_WIDTH, m_strokeWidth, FALSE);
     SetDlgItemInt(hDlg, IDC_EDIT_ORN_STROKE_WIDTH, m_ornStrokeWidth, FALSE);
 
+    CheckDlgButton(hDlg, IDC_CHECK_REPLACE_FULL_ALNUM, m_fReplaceFullAlnum ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(hDlg, IDC_CHECK_REPLACE_DRCS, m_fReplaceDrcs ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(hDlg, IDC_CHECK_IGNORE_SMALL, m_fIgnoreSmall ? BST_CHECKED : BST_UNCHECKED);
     bool fCheckRomSound = !m_romSoundList.empty() && m_romSoundList[0] != TEXT(';');
     CheckDlgButton(hDlg, IDC_CHECK_ROMSOUND, fCheckRomSound ? BST_CHECKED : BST_UNCHECKED);
@@ -1353,6 +1368,10 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
                 fSave = true;
             }
             break;
+        case IDC_CHECK_NO_BACKGROUND:
+            m_fNoBackground = IsDlgButtonChecked(hDlg, IDC_CHECK_NO_BACKGROUND) != BST_UNCHECKED;
+            fSave = fReDisp = true;
+            break;
         case IDC_EDIT_STROKE_WIDTH:
         case IDC_EDIT_ORN_STROKE_WIDTH:
             if (HIWORD(wParam) == EN_CHANGE) {
@@ -1360,6 +1379,14 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
                 m_ornStrokeWidth = GetDlgItemInt(hDlg, IDC_EDIT_ORN_STROKE_WIDTH, nullptr, FALSE);
                 fSave = fReDisp = true;
             }
+            break;
+        case IDC_CHECK_REPLACE_FULL_ALNUM:
+            m_fReplaceFullAlnum = IsDlgButtonChecked(hDlg, IDC_CHECK_REPLACE_FULL_ALNUM) != BST_UNCHECKED;
+            fSave = fReDisp = true;
+            break;
+        case IDC_CHECK_REPLACE_DRCS:
+            m_fReplaceDrcs = IsDlgButtonChecked(hDlg, IDC_CHECK_REPLACE_DRCS) != BST_UNCHECKED;
+            fSave = fReDisp = true;
             break;
         case IDC_CHECK_IGNORE_SMALL:
             m_fIgnoreSmall = IsDlgButtonChecked(hDlg, IDC_CHECK_IGNORE_SMALL) != BST_UNCHECKED;

@@ -73,8 +73,11 @@ private:
     int m_paintingMethod;
     int m_showFlags[STREAM_MAX];
     int m_delayTime[STREAM_MAX];
+    bool m_fNoBackground;
     int m_strokeWidth;
     int m_ornStrokeWidth;
+    bool m_fReplaceFullAlnum;
+    bool m_fReplaceDrcs;
     bool m_fIgnoreSmall;
     tstring m_romSoundList;
     bool m_fInitializeSettingsDlg;
