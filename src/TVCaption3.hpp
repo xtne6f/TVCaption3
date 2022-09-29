@@ -57,6 +57,7 @@ private:
     static LRESULT CALLBACK PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     bool ResetCaptionContext(STREAM_INDEX index);
     void ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue);
+    bool RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds, bool &fTextureModified);
     void OnSize(STREAM_INDEX index);
     static BOOL CALLBACK StreamCallback(BYTE *pData, void *pClientData);
     void ProcessPacket(BYTE *pPacket);
@@ -91,6 +92,7 @@ private:
     std::vector<std::unique_ptr<CPseudoOSD>> m_pOsdList[STREAM_MAX];
     size_t m_osdShowCount[STREAM_MAX];
     LONGLONG m_clearPts[STREAM_MAX];
+    LONGLONG m_renderedPts[STREAM_MAX];
     bool m_fNeedtoShow;
     bool m_fShowLang2;
     std::atomic_bool m_fProfileC;

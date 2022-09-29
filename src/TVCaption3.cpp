@@ -64,6 +64,7 @@ CTVCaption2::CTVCaption2()
         m_delayTime[index] = 0;
         m_osdShowCount[index] = 0;
         m_clearPts[index] = -1;
+        m_renderedPts[index] = -1;
     }
     PAT zeroPat = {};
     m_pat = zeroPat;
@@ -542,6 +543,7 @@ LRESULT CALLBACK CTVCaption2::EventCallback(UINT Event, LPARAM lParam1, LPARAM l
         if (pThis->m_pApp->IsPluginEnabled()) {
             // オーナーが変わるので破棄する必要がある
             SendMessage(pThis->m_hwndPainting, WM_APP_RESET_OSDS, 0, 0);
+            SetTimer(pThis->m_hwndPainting, TIMER_ID_DONE_SIZE, 500, nullptr);
         }
         break;
     case TVTest::EVENT_CHANNELCHANGE:
@@ -585,6 +587,8 @@ LRESULT CALLBACK CTVCaption2::EventCallback(UINT Event, LPARAM lParam1, LPARAM l
             case ID_COMMAND_SWITCH_SETTING:
                 pThis->HideAllOsds();
                 pThis->SwitchSettings();
+                pThis->ResetCaptionContext(STREAM_CAPTION);
+                pThis->ResetCaptionContext(STREAM_SUPERIMPOSE);
                 pThis->PlayRomSound(16);
                 break;
             }
@@ -643,10 +647,8 @@ void CTVCaption2::HideOsds(int index, size_t osdPrepareCount)
 
 void CTVCaption2::DeleteTextures()
 {
-    if (m_paintingMethod == 3) {
-        if (m_osdCompositor.DeleteTexture(0, 0)) {
-            m_osdCompositor.UpdateSurface();
-        }
+    if (m_osdCompositor.DeleteTexture(0, 0)) {
+        m_osdCompositor.UpdateSurface();
     }
 }
 
@@ -655,6 +657,7 @@ void CTVCaption2::HideAllOsds()
     for (int index = 0; index < STREAM_MAX; ++index) {
         HideOsds(index);
         m_clearPts[index] = -1;
+        m_renderedPts[index] = -1;
     }
     DeleteTextures();
 }
@@ -666,7 +669,6 @@ void CTVCaption2::DestroyOsds()
     for (int index = 0; index < STREAM_MAX; ++index) {
         m_pOsdList[index].clear();
         m_osdShowCount[index] = 0;
-        m_clearPts[index] = -1;
     }
     DeleteTextures();
 }
@@ -803,6 +805,9 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
     m_captionContext[index].swap(context);
     m_captionDecoder[index].swap(decoder);
     m_captionRenderer[index].swap(renderer);
+
+    m_clearPts[index] = -1;
+    m_renderedPts[index] = -1;
     return true;
 }
 
@@ -823,10 +828,9 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             if (ptsPcrDiff >= 0x100000000) {
                 HideOsds(index);
                 m_clearPts[index] = -1;
-                if (m_paintingMethod == 3) {
-                    if (m_osdCompositor.DeleteTexture(0, index + 1)) {
-                        fTextureModified = true;
-                    }
+                m_renderedPts[index] = -1;
+                if (m_osdCompositor.DeleteTexture(0, index + 1)) {
+                    fTextureModified = true;
                 }
             }
         }
@@ -888,10 +892,7 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             ResetCaptionContext(index);
         }
 
-        RECT rcVideo;
-        if (status == aribcaption::DecodeStatus::kGotCaption &&
-            GetVideoSurfaceRect(m_hwndContainer, &rcVideo))
-        {
+        if (status == aribcaption::DecodeStatus::kGotCaption) {
             bool fHideOsds = false;
             if (decodeResult.caption->flags & aribcaption::CaptionFlags::kCaptionFlagsClearScreen) {
                 // 消去
@@ -913,9 +914,21 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
                 }
             }
 
-            m_captionRenderer[index]->SetFrameSize(rcVideo.right - rcVideo.left, rcVideo.bottom - rcVideo.top);
             m_captionRenderer[index]->AppendCaption(std::move(*decodeResult.caption));
+            m_renderedPts[index] = RenderCaption(index, pts, fHideOsds, fTextureModified) ? pts : -1;
+        }
+    }
+    if (fTextureModified) {
+        m_osdCompositor.UpdateSurface();
+    }
+}
 
+
+bool CTVCaption2::RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds, bool &fTextureModified)
+{
+    RECT rcVideo;
+    if (GetVideoSurfaceRect(m_hwndContainer, &rcVideo)) {
+        if (m_captionRenderer[index]->SetFrameSize(rcVideo.right - rcVideo.left, rcVideo.bottom - rcVideo.top)) {
             size_t osdPrepareCount = 0;
             aribcaption::RenderResult renderResult;
             auto renderStatus = aribcaption::RenderStatus::kError;
@@ -1001,32 +1014,21 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             for (; osdPrepareCount > 0; --osdPrepareCount, ++m_osdShowCount[index]) {
                 m_pOsdList[index][m_osdShowCount[index]]->Show();
             }
+            return renderStatus == aribcaption::RenderStatus::kGotImage;
         }
     }
-    if (fTextureModified) {
-        m_osdCompositor.UpdateSurface();
-    }
+    return false;
 }
 
 
 void CTVCaption2::OnSize(STREAM_INDEX index)
 {
-    if (m_paintingMethod != 3 && m_osdShowCount[index] > 0) {
-        RECT rc;
-        if (GetVideoContainerLayout(m_hwndContainer, &rc)) {
-            // とりあえずはみ出ないようにする
-            for (size_t i = 0; i < m_osdShowCount[index]; ++i) {
-                int left, top, width, height;
-                m_pOsdList[index][i]->GetPosition(&left, &top, &width, &height);
-                int adjLeft = left + width >= rc.right ? rc.right - width : left;
-                int adjTop = top + height >= rc.bottom ? rc.bottom - height : top;
-                if (adjLeft < 0 || adjTop < 0) {
-                    m_pOsdList[index][i]->Hide();
-                }
-                else if (left != adjLeft || top != adjTop) {
-                    m_pOsdList[index][i]->SetPosition(adjLeft, adjTop, width, height);
-                }
-            }
+    if (m_renderedPts[index] >= 0) {
+        // 再描画
+        bool fTextureModified = m_osdCompositor.DeleteTexture(0, index + 1);
+        RenderCaption(index, m_renderedPts[index], true, fTextureModified);
+        if (fTextureModified) {
+            m_osdCompositor.UpdateSurface();
         }
     }
 }
@@ -1305,7 +1307,6 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
         switch (LOWORD(wParam)) {
         case IDOK:
         case IDCANCEL:
-            HideAllOsds();
             EndDialog(hDlg, LOWORD(wParam));
             break;
         case IDC_CHECK_OSD:
@@ -1314,20 +1315,17 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
             break;
         case IDC_COMBO_SETTINGS:
             if (HIWORD(wParam) == CBN_SELCHANGE) {
-                HideAllOsds();
                 SwitchSettings(static_cast<int>(SendDlgItemMessage(hDlg, IDC_COMBO_SETTINGS, CB_GETCURSEL, 0, 0)));
                 InitializeSettingsDlg(hDlg);
                 fReDisp = true;
             }
             break;
         case IDC_SETTINGS_ADD:
-            HideAllOsds();
             AddSettings();
             InitializeSettingsDlg(hDlg);
             fReDisp = true;
             break;
         case IDC_SETTINGS_DELETE:
-            HideAllOsds();
             DeleteSettings();
             InitializeSettingsDlg(hDlg);
             fReDisp = true;
@@ -1346,19 +1344,16 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
             break;
         case IDC_COMBO_METHOD:
             if (HIWORD(wParam) == CBN_SELCHANGE) {
-                HideAllOsds();
                 m_paintingMethod = static_cast<int>(SendDlgItemMessage(hDlg, IDC_COMBO_METHOD, CB_GETCURSEL, 0, 0));
                 m_paintingMethod = min(max(m_paintingMethod, 0), 1) + 2;
                 fSave = fReDisp = true;
             }
             break;
         case IDC_CHECK_CAPTION:
-            HideAllOsds();
             m_showFlags[STREAM_CAPTION] = IsDlgButtonChecked(hDlg, IDC_CHECK_CAPTION) != BST_UNCHECKED ? 65535 : 0;
             fSave = fReDisp = true;
             break;
         case IDC_CHECK_SUPERIMPOSE:
-            HideAllOsds();
             m_showFlags[STREAM_SUPERIMPOSE] = IsDlgButtonChecked(hDlg, IDC_CHECK_SUPERIMPOSE) != BST_UNCHECKED ? 65535 : 0;
             fSave = fReDisp = true;
             break;
