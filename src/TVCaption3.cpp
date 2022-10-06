@@ -717,12 +717,9 @@ LRESULT CALLBACK CTVCaption2::PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wPara
             pThis->m_caption1PesQueue.clear();
             pThis->m_caption2PesQueue.clear();
         }
-        for (int index = 0; index < STREAM_MAX; ++index) {
-            pThis->m_captionDecoder[index]->SwitchLanguage(pThis->m_fShowLang2 ? aribcaption::LanguageId::kSecond :
-                                                                                 aribcaption::LanguageId::kFirst);
-            pThis->m_captionDecoder[index]->SetProfile(pThis->m_fProfileC ? aribcaption::Profile::kProfileC :
-                                                                            aribcaption::Profile::kProfileA);
-        }
+        // aribcaption::Decoder::Flush()では不十分
+        pThis->ResetCaptionDecoder(STREAM_CAPTION);
+        pThis->ResetCaptionDecoder(STREAM_SUPERIMPOSE);
         return 0;
     case WM_APP_PROCESS_CAPTION:
         pThis->ProcessCaption(pThis->m_caption1PesQueue);
@@ -758,6 +755,23 @@ LRESULT CALLBACK CTVCaption2::PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wPara
 }
 
 
+bool CTVCaption2::ResetCaptionDecoder(STREAM_INDEX index, aribcaption::Context *context)
+{
+    auto decoder = std::make_unique<aribcaption::Decoder>(*(context ? context : m_captionContext[index].get()));
+    if (!decoder->Initialize(aribcaption::EncodingScheme::kAuto,
+                             index == STREAM_CAPTION ? aribcaption::CaptionType::kCaption :
+                                                       aribcaption::CaptionType::kSuperimpose))
+    {
+        return false;
+    }
+    decoder->SetReplaceMSZFullWidthAlphanumeric(m_fReplaceFullAlnum);
+    decoder->SwitchLanguage(m_fShowLang2 ? aribcaption::LanguageId::kSecond : aribcaption::LanguageId::kFirst);
+    decoder->SetProfile(m_fProfileC ? aribcaption::Profile::kProfileC : aribcaption::Profile::kProfileA);
+    m_captionDecoder[index].swap(decoder);
+    return true;
+}
+
+
 bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
 {
     auto context = std::make_unique<aribcaption::Context>();
@@ -768,18 +782,14 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
                             level == aribcaption::LogLevel::kWarning ? TVTest::LOG_TYPE_WARNING : TVTest::LOG_TYPE_INFORMATION);
     });
 
-    auto decoder = std::make_unique<aribcaption::Decoder>(*context);
-    if (!decoder->Initialize(aribcaption::EncodingScheme::kAuto,
-                             index == STREAM_CAPTION ? aribcaption::CaptionType::kCaption :
-                                                       aribcaption::CaptionType::kSuperimpose))
-    {
-        return false;
-    }
-
     auto renderer = std::make_unique<aribcaption::Renderer>(*context);
     if (!renderer->Initialize(index == STREAM_CAPTION ? aribcaption::CaptionType::kCaption :
                                                         aribcaption::CaptionType::kSuperimpose))
     {
+        return false;
+    }
+
+    if (!ResetCaptionDecoder(index, context.get())) {
         return false;
     }
 
@@ -798,12 +808,8 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
     renderer->SetStrokeWidth(static_cast<float>((m_strokeWidth > 0 ? m_strokeWidth : m_ornStrokeWidth) / 10.0));
     renderer->SetReplaceDRCS(m_fReplaceDrcs);
     renderer->SetForceNoRuby(m_fIgnoreSmall);
-    decoder->SetReplaceMSZFullWidthAlphanumeric(m_fReplaceFullAlnum);
-    decoder->SwitchLanguage(m_fShowLang2 ? aribcaption::LanguageId::kSecond : aribcaption::LanguageId::kFirst);
-    decoder->SetProfile(m_fProfileC ? aribcaption::Profile::kProfileC : aribcaption::Profile::kProfileA);
 
     m_captionContext[index].swap(context);
-    m_captionDecoder[index].swap(decoder);
     m_captionRenderer[index].swap(renderer);
 
     m_clearPts[index] = -1;

@@ -55,6 +55,7 @@ private:
     void HideAllOsds();
     void DestroyOsds();
     static LRESULT CALLBACK PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    bool ResetCaptionDecoder(STREAM_INDEX index, aribcaption::Context *context = nullptr);
     bool ResetCaptionContext(STREAM_INDEX index);
     void ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue);
     bool RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds, bool &fTextureModified);
