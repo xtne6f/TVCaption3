@@ -801,7 +801,7 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
         }
     }
     if (!fontFamily.empty()) {
-        renderer->SetLanguageSpecificFontFamily(aribcaption::ThreeCC("jpn"), fontFamily);
+        renderer->SetDefaultFontFamily(fontFamily, true);
     }
     renderer->SetForceNoBackground(m_fNoBackground);
     renderer->SetForceStrokeText(m_strokeWidth > 0);
