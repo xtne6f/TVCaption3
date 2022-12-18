@@ -120,9 +120,6 @@
     <ClInclude Include="aribcaption\src\renderer\rect.hpp">
       <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
     </ClInclude>
-    <ClInclude Include="aribcaption\src\renderer\region_image_rearranger.hpp">
-      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
-    </ClInclude>
     <ClInclude Include="aribcaption\src\renderer\region_renderer.hpp">
       <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
     </ClInclude>
@@ -276,9 +273,6 @@
       <Filter>ソース ファイル\aribcaption\renderer</Filter>
     </ClCompile>
     <ClCompile Include="aribcaption\src\renderer\image_capi.cpp">
-      <Filter>ソース ファイル\aribcaption\renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="aribcaption\src\renderer\region_image_rearranger.cpp">
       <Filter>ソース ファイル\aribcaption\renderer</Filter>
     </ClCompile>
     <ClCompile Include="aribcaption\src\renderer\region_renderer.cpp">
