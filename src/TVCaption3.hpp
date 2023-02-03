@@ -5,6 +5,7 @@
 #include "OsdCompositor.h"
 #include "PseudoOSD.hpp"
 #include "Util.hpp"
+#include "ViewerClockEstimator.hpp"
 #define TVTEST_PLUGIN_CLASS_IMPLEMENT
 #define TVTEST_PLUGIN_VERSION TVTEST_PLUGIN_VERSION_(0,0,14)
 #include "TVTestPlugin.h"
@@ -61,6 +62,7 @@ private:
     bool RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds, bool &fTextureModified);
     void OnSize(STREAM_INDEX index);
     static BOOL CALLBACK StreamCallback(BYTE *pData, void *pClientData);
+    static LRESULT CALLBACK VideoStreamCallback(DWORD Format, const void *pData, SIZE_T Size, void *pClientData);
     void ProcessPacket(BYTE *pPacket);
     bool PluginSettings(HWND hwndOwner);
     static INT_PTR CALLBACK SettingsDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -100,7 +102,6 @@ private:
 
     // ストリーム解析
     std::recursive_mutex m_streamLock;
-    LONGLONG m_pcr;
     DWORD m_procCapTick;
     std::atomic_bool m_fResetPat;
     PAT m_pat;
@@ -115,6 +116,9 @@ private:
 
     // レンダラで合成する(疑似でない)OSD
     COsdCompositor m_osdCompositor;
+
+    // ビューアPCRの推定用
+    CViewerClockEstimator m_viewerClockEstimator;
 };
 
 #endif // INCLUDE_TV_CAPTION3_HPP

@@ -47,7 +47,6 @@ CTVCaption2::CTVCaption2()
     , m_fNeedtoShow(false)
     , m_fShowLang2(false)
     , m_fProfileC(false)
-    , m_pcr(0)
     , m_procCapTick(0)
     , m_fResetPat(false)
     , m_videoPid(-1)
@@ -325,6 +324,7 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
 
                 // コールバックの登録
                 m_pApp->SetStreamCallback(0, StreamCallback, this);
+                m_pApp->SetVideoStreamCallback(VideoStreamCallback, this);
                 m_pApp->SetWindowMessageCallback(WindowMsgCallback, this);
 
                 m_pApp->SetPluginCommandState(ID_COMMAND_SWITCH_LANG, 0);
@@ -337,6 +337,7 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
     else {
         // コールバックの登録解除
         m_pApp->SetWindowMessageCallback(nullptr, nullptr);
+        m_pApp->SetVideoStreamCallback(nullptr);
         m_pApp->SetStreamCallback(TVTest::STREAM_CALLBACK_REMOVE, StreamCallback);
 
         // 字幕描画ウィンドウの破棄
@@ -365,6 +366,7 @@ void CTVCaption2::LoadSettings()
 {
     std::vector<TCHAR> vbuf = GetPrivateProfileSectionBuffer(TEXT("Settings"), m_iniPath.c_str());
     TCHAR val[SETTING_VALUE_MAX];
+    m_viewerClockEstimator.SetEnabled(GetBufferedProfileInt(vbuf.data(), TEXT("EstimateViewerDelay"), 1) != 0);
     m_settingsIndex = GetBufferedProfileInt(vbuf.data(), TEXT("SettingsIndex"), 0);
 
     // ここからはセクション固有
@@ -397,6 +399,7 @@ void CTVCaption2::LoadSettings()
 void CTVCaption2::SaveSettings() const
 {
     TCHAR section[32] = TEXT("Settings");
+    WritePrivateProfileInt(section, TEXT("EstimateViewerDelay"), m_viewerClockEstimator.GetEnabled(), m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("SettingsIndex"), m_settingsIndex, m_iniPath.c_str());
 
     // ここからはセクション固有
@@ -824,12 +827,12 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
 
     for (int index = 0; index < STREAM_MAX; ++index) {
         if (m_clearPts[index] >= 0) {
-            LONGLONG shiftPcr;
-            {
-                lock_recursive_mutex lock(m_streamLock);
-                shiftPcr = (0x200000000 + m_pcr - min(max(m_delayTime[index], -5000), 5000) * PCR_PER_MSEC) & 0x1ffffffff;
+            LONGLONG ptsPcrDiff = 0x100000000;
+            LONGLONG pcr = m_viewerClockEstimator.GetViewerPcr();
+            if (pcr >= 0) {
+                LONGLONG shiftPcr = (0x200000000 + pcr + (450 - min(max(m_delayTime[index], -5000), 5000)) * PCR_PER_MSEC) & 0x1ffffffff;
+                ptsPcrDiff = (0x200000000 + m_clearPts[index] - shiftPcr) & 0x1ffffffff;
             }
-            LONGLONG ptsPcrDiff = (0x200000000 + m_clearPts[index] - shiftPcr) & 0x1ffffffff;
             // 期限付き字幕を消去
             if (ptsPcrDiff >= 0x100000000) {
                 HideOsds(index);
@@ -858,7 +861,11 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             PES_HEADER pesHeader;
             extract_pes_header(&pesHeader, it->data(), static_cast<int>(it->size()));
             if (pesHeader.packet_start_code_prefix) {
-                LONGLONG shiftPcr = (0x200000000 + m_pcr - min(max(m_delayTime[index], -5000), 5000) * PCR_PER_MSEC) & 0x1ffffffff;
+                LONGLONG shiftPcr = 0;
+                LONGLONG pcr = m_viewerClockEstimator.GetViewerPcr();
+                if (pcr >= 0) {
+                    shiftPcr = (0x200000000 + pcr + (450 - min(max(m_delayTime[index], -5000), 5000)) * PCR_PER_MSEC) & 0x1ffffffff;
+                }
                 if (pesHeader.stream_id == 0xbf) {
                     // 文字スーパー
                     pes.swap(*it);
@@ -1048,6 +1055,14 @@ BOOL CALLBACK CTVCaption2::StreamCallback(BYTE *pData, void *pClientData)
 }
 
 
+// 映像ストリームのコールバック(別スレッド)
+LRESULT CALLBACK CTVCaption2::VideoStreamCallback(DWORD Format, const void *pData, SIZE_T Size, void *pClientData)
+{
+    static_cast<CTVCaption2*>(pClientData)->m_viewerClockEstimator.SetVideoStream(true, static_cast<const BYTE*>(pData), Size);
+    return 0;
+}
+
+
 namespace
 {
 void GetPidsFromVideoPmt(int *pPmtPid, int *pPcrPid, int *pCaption1Pid, int *pCaption2Pid, int videoPid, const PAT *pPat)
@@ -1124,10 +1139,11 @@ void CTVCaption2::ProcessPacket(BYTE *pPacket)
                                (static_cast<LONGLONG>(pPacket[6]) << 25);
 
                 // PCRの連続性チェック
-                if (((0x200000000 + pcr - m_pcr) & 0x1ffffffff) >= 1000 * PCR_PER_MSEC) {
+                if (((0x200000000 + pcr - m_viewerClockEstimator.GetStreamPcr()) & 0x1ffffffff) >= 1000 * PCR_PER_MSEC) {
                     SendNotifyMessage(m_hwndPainting, WM_APP_RESET_CAPTION, 0, 0);
+                    m_viewerClockEstimator.Reset();
                 }
-                m_pcr = pcr;
+                m_viewerClockEstimator.SetStreamPcr(pcr);
 
                 // ある程度呼び出し頻度を抑える(感覚的に遅延を感じなければOK)
                 DWORD tick = GetTickCount();
@@ -1196,6 +1212,10 @@ void CTVCaption2::ProcessPacket(BYTE *pPacket)
             }
         }
     }
+
+    if (!scr && pid == m_videoPid) {
+        m_viewerClockEstimator.SetVideoPes(false, !!unitStart, pPayload, payloadSize);
+    }
 }
 
 
@@ -1247,6 +1267,8 @@ void CTVCaption2::InitializeSettingsDlg(HWND hDlg)
 
     CheckDlgButton(hDlg, IDC_CHECK_OSD,
         GetPrivateProfileInt(TEXT("Settings"), TEXT("EnOsdCompositor"), 0, m_iniPath.c_str()) != 0 ? BST_CHECKED : BST_UNCHECKED);
+
+    CheckDlgButton(hDlg, IDC_CHECK_ESTIMATE_VIEWER_DELAY, m_viewerClockEstimator.GetEnabled() ? BST_CHECKED : BST_UNCHECKED);
 
     int settingsCount = GetSettingsCount();
     SendDlgItemMessage(hDlg, IDC_COMBO_SETTINGS, CB_RESETCONTENT, 0, 0);
@@ -1318,6 +1340,10 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
         case IDC_CHECK_OSD:
             WritePrivateProfileInt(TEXT("Settings"), TEXT("EnOsdCompositor"),
                 IsDlgButtonChecked(hDlg, IDC_CHECK_OSD) != BST_UNCHECKED, m_iniPath.c_str());
+            break;
+        case IDC_CHECK_ESTIMATE_VIEWER_DELAY:
+            m_viewerClockEstimator.SetEnabled(IsDlgButtonChecked(hDlg, IDC_CHECK_ESTIMATE_VIEWER_DELAY) != BST_UNCHECKED);
+            fSave = true;
             break;
         case IDC_COMBO_SETTINGS:
             if (HIWORD(wParam) == CBN_SELCHANGE) {

@@ -231,6 +231,7 @@
     <ClInclude Include="TVCaption3.hpp" />
     <ClInclude Include="TVTestPlugin.h" />
     <ClInclude Include="Util.hpp" />
+    <ClInclude Include="ViewerClockEstimator.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aribcaption\src\base\aligned_alloc.cpp" />
@@ -263,6 +264,7 @@
     <ClCompile Include="PseudoOSD.cpp" />
     <ClCompile Include="TVCaption3.cpp" />
     <ClCompile Include="Util.cpp" />
+    <ClCompile Include="ViewerClockEstimator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TVCaption3.rc" />

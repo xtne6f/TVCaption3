@@ -36,3 +36,4 @@
 #define IDC_CHECK_IGNORE_SMALL                  1030
 #define IDC_CHECK_ROMSOUND                      1032
 #define IDC_CHECK_CUST_ROMSOUND                 1040
+#define IDC_CHECK_ESTIMATE_VIEWER_DELAY         1041
