@@ -26,6 +26,10 @@ private:
 
     // 遅延量の推定の既定値
     static const DWORD DEFAULT_PCR_DIFF = 450 * PCR_PER_MSEC;
+    // PCRに対して表示が先行する予想値
+    // おそらく環境によって差がある。一般的なPCRに対する音声PTSの差(200msec程度)より大きくなることはないはず
+    // TODO: 音声の遅延がないと仮定してPCRに対する音声PTSの差を使うとよりよいかもしれない
+    static const DWORD ADJUST_PCR_DIFF = 100 * PCR_PER_MSEC;
     // 遅延量の推定の最大値
     static const DWORD STREAM_PCR_QUEUE_DIFF = 10000 * PCR_PER_MSEC;
     // 表示に近い側のストリームの観測範囲

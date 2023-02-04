@@ -97,10 +97,10 @@ void CViewerClockEstimator::SetStreamPcr(LONGLONG pcr)
         for (auto it = m_pcrDiffs.begin(); it != m_pcrDiffs.end(); ++it) {
             medianCount += it->second;
             if (medianCount * 2 >= entireCount) {
-                m_pcrDiff = it->first;
+                m_pcrDiff = it->first < ADJUST_PCR_DIFF ? 0 : it->first - ADJUST_PCR_DIFF;
 #ifndef NDEBUG
                 TCHAR debug[64];
-                _stprintf_s(debug, L"Estimated viewer PCR diff: %d\n", m_pcrDiff);
+                _stprintf_s(debug, TEXT("Estimated viewer PCR diff: %d\n"), m_pcrDiff);
                 DEBUG_OUT(debug);
 #endif
                 break;
