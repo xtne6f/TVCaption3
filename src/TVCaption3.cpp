@@ -1036,6 +1036,9 @@ bool CTVCaption2::RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds
 
 void CTVCaption2::OnSize(STREAM_INDEX index)
 {
+    for (size_t i = 0; i < m_pOsdList[index].size(); ++i) {
+        m_pOsdList[index][i]->OnParentSize();
+    }
     if (m_renderedPts[index] >= 0) {
         // 再描画
         bool fTextureModified = m_osdCompositor.DeleteTexture(0, index + 1);

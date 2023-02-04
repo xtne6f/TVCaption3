@@ -16,6 +16,7 @@ public:
     void SetPosition(int x, int y, int width, int height);
     void GetPosition(int *x, int *y, int *width, int *height);
     void OnParentMove();
+    void OnParentSize();
 private:
     CPseudoOSD(const CPseudoOSD &);
     CPseudoOSD &operator=(const CPseudoOSD &);
@@ -30,6 +31,7 @@ private:
     int m_width;
     int m_height;
     HBITMAP m_hbm;
+    bool m_fHide;
 };
 
 #endif // INCLUDE_PSEUDO_OSD_HPP

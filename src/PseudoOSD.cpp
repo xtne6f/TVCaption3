@@ -10,6 +10,7 @@ CPseudoOSD::CPseudoOSD()
     , m_width(0)
     , m_height(0)
     , m_hbm(nullptr)
+    , m_fHide(true)
 {
 }
 
@@ -40,6 +41,7 @@ bool CPseudoOSD::Create(HWND hwndParent, HINSTANCE hinst)
         m_hwnd = nullptr;
     }
     ClearImage();
+    m_fHide = true;
 
     POINT pt;
     if (hwndParent && ClientToScreen(hwndParent, &pt)) {
@@ -65,6 +67,7 @@ void CPseudoOSD::Show()
         Update();
         if (IsWindowVisible(m_hwndParent)) {
             ShowWindow(m_hwnd, SW_SHOWNOACTIVATE);
+            m_fHide = false;
         }
         UpdateWindow(m_hwnd);
     }
@@ -74,6 +77,7 @@ void CPseudoOSD::Hide()
 {
     if (m_hwnd) {
         ShowWindow(m_hwnd, SW_HIDE);
+        m_fHide = true;
     }
     ClearImage();
 }
@@ -117,6 +121,14 @@ void CPseudoOSD::GetPosition(int *x, int *y, int *width, int *height)
 void CPseudoOSD::OnParentMove()
 {
     SetPosition(m_x, m_y, m_width, m_height);
+}
+
+void CPseudoOSD::OnParentSize()
+{
+    // オーナーの最小化解除につられて復活することがあるため
+    if (m_hwnd && m_fHide && IsWindowVisible(m_hwnd)) {
+        ShowWindow(m_hwnd, SW_HIDE);
+    }
 }
 
 void CPseudoOSD::Update()
