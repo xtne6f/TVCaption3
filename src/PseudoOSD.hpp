@@ -12,6 +12,7 @@ public:
     void Hide();
     void ClearImage();
     // 画像を設定する。受けとったビットマップはクラス側で破棄する
+    // 乗算済みアルファの32bitビットマップであること
     void SetImage(HBITMAP hbm, int x, int y, int width, int height);
     void SetPosition(int x, int y, int width, int height);
     void GetPosition(int *x, int *y, int *width, int *height);

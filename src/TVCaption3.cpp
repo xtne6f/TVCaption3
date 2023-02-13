@@ -973,12 +973,27 @@ bool CTVCaption2::RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds
                                 auto jt = it->bitmap.begin() + it->stride * y;
                                 BYTE *p = static_cast<BYTE*>(pBits) + 4 * it->width * (it->height - y - 1);
                                 BYTE *pEnd = static_cast<BYTE*>(pBits) + 4 * it->width * (it->height - y);
-                                while (p != pEnd) {
-                                    p[2] = *(jt++);
-                                    p[1] = *(jt++);
-                                    p[0] = *(jt++);
-                                    p[3] = *(jt++);
-                                    p += 4;
+                                if (m_paintingMethod == 2) {
+                                    // 乗算済みにする
+                                    while (p != pEnd) {
+                                        BYTE r = *(jt++);
+                                        BYTE g = *(jt++);
+                                        BYTE b = *(jt++);
+                                        BYTE a = *(jt++);
+                                        *(p++) = (b * a + 255) >> 8;
+                                        *(p++) = (g * a + 255) >> 8;
+                                        *(p++) = (r * a + 255) >> 8;
+                                        *(p++) = a;
+                                    }
+                                }
+                                else {
+                                    while (p != pEnd) {
+                                        p[2] = *(jt++);
+                                        p[1] = *(jt++);
+                                        p[0] = *(jt++);
+                                        p[3] = *(jt++);
+                                        p += 4;
+                                    }
                                 }
                             }
 
