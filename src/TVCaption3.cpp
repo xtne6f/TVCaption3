@@ -956,6 +956,14 @@ bool CTVCaption2::RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds
             }
 
             if (renderStatus == aribcaption::RenderStatus::kGotImage) {
+                int shiftY = 0;
+                if (m_fProfileC) {
+                    // そのままだと描画面の上方向に突き抜けるので底に詰める
+                    shiftY = rcVideo.bottom - rcVideo.top;
+                    for (auto it = renderResult.images.begin(); it != renderResult.images.end(); ++it) {
+                        shiftY = std::min<int>(shiftY, rcVideo.bottom - rcVideo.top - (it->dst_y + it->height));
+                    }
+                }
                 // 追加
                 for (auto it = renderResult.images.begin(); it != renderResult.images.end(); ++it) {
                     if (it->width > 0 && it->height > 0 && it->pixel_format == aribcaption::PixelFormat::kRGBA8888) {
@@ -1020,11 +1028,11 @@ bool CTVCaption2::RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds
                                 }
                                 CPseudoOSD &osd = *m_pOsdList[index][m_osdShowCount[index] + osdPrepareCount++];
                                 osd.Create(m_hwndContainer, g_hinstDLL);
-                                osd.SetImage(hbm, it->dst_x + rcVideo.left, it->dst_y + rcVideo.top, it->width, it->height);
+                                osd.SetImage(hbm, it->dst_x + rcVideo.left, shiftY + it->dst_y + rcVideo.top, it->width, it->height);
                             }
                             else {
                                 if (m_paintingMethod == 3) {
-                                    if (m_osdCompositor.AddTexture(hbm, it->dst_x, it->dst_y, true, index + 1)) {
+                                    if (m_osdCompositor.AddTexture(hbm, it->dst_x, shiftY + it->dst_y, true, index + 1)) {
                                         fTextureModified = true;
                                     }
                                 }
