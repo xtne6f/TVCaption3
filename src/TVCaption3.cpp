@@ -35,6 +35,7 @@ enum {
 CTVCaption2::CTVCaption2()
     : m_settingsIndex(0)
     , m_paintingMethod(0)
+    , m_fFreeType(false)
     , m_fNoBackground(false)
     , m_strokeWidth(0)
     , m_ornStrokeWidth(0)
@@ -47,6 +48,7 @@ CTVCaption2::CTVCaption2()
     , m_fNeedtoShow(false)
     , m_fShowLang2(false)
     , m_fProfileC(false)
+    , m_hFreetypeDll(nullptr)
     , m_procCapTick(0)
     , m_fResetPat(false)
     , m_videoPid(-1)
@@ -353,6 +355,10 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
             m_captionDecoder[index] = nullptr;
             m_captionContext[index] = nullptr;
         }
+        if (m_hFreetypeDll) {
+            FreeLibrary(m_hFreetypeDll);
+            m_hFreetypeDll = nullptr;
+        }
 
         m_pApp->SetPluginCommandState(ID_COMMAND_SWITCH_LANG, TVTest::PLUGIN_COMMAND_STATE_DISABLED);
         m_pApp->SetPluginCommandState(ID_COMMAND_SWITCH_SETTING, TVTest::PLUGIN_COMMAND_STATE_DISABLED);
@@ -380,6 +386,7 @@ void CTVCaption2::LoadSettings()
     GetBufferedProfileString(buf, TEXT("FaceName1"), TEXT(""), m_szFaceName[1], _countof(m_szFaceName[1]));
     GetBufferedProfileString(buf, TEXT("FaceName2"), TEXT(""), m_szFaceName[2], _countof(m_szFaceName[2]));
     m_paintingMethod    = GetBufferedProfileInt(buf, TEXT("Method"), 2);
+    m_fFreeType         = GetBufferedProfileInt(buf, TEXT("FreeType"), 0) != 0;
     m_showFlags[STREAM_CAPTION]     = GetBufferedProfileInt(buf, TEXT("ShowFlags"), 65535);
     m_showFlags[STREAM_SUPERIMPOSE] = GetBufferedProfileInt(buf, TEXT("ShowFlagsSuper"), 65535);
     m_delayTime[STREAM_CAPTION]     = GetBufferedProfileInt(buf, TEXT("DelayTime"), 450);
@@ -410,6 +417,7 @@ void CTVCaption2::SaveSettings() const
     WritePrivateProfileString(section, TEXT("FaceName1"), m_szFaceName[1], m_iniPath.c_str());
     WritePrivateProfileString(section, TEXT("FaceName2"), m_szFaceName[2], m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("Method"), m_paintingMethod, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("FreeType"), m_fFreeType, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("ShowFlags"), m_showFlags[STREAM_CAPTION], m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("ShowFlagsSuper"), m_showFlags[STREAM_SUPERIMPOSE], m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("DelayTime"), m_delayTime[STREAM_CAPTION], m_iniPath.c_str());
@@ -785,9 +793,30 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
                             level == aribcaption::LogLevel::kWarning ? TVTest::LOG_TYPE_WARNING : TVTest::LOG_TYPE_INFORMATION);
     });
 
+    if (m_fFreeType) {
+        if (!m_hFreetypeDll) {
+            // 存在を確認しているだけ
+            TCHAR path[MAX_PATH];
+            if (GetLongModuleFileName(nullptr, path, _countof(path))) {
+                tstring dllPath = path;
+                size_t lastSep = dllPath.find_last_of(TEXT("/\\"));
+                if (lastSep != tstring::npos) {
+                    dllPath.replace(lastSep + 1, tstring::npos, TEXT("freetype.dll"));
+                    m_hFreetypeDll = LoadLibrary(dllPath.c_str());
+                }
+            }
+        }
+        if (!m_hFreetypeDll) {
+            m_pApp->AddLog(TEXT("freetype.dllが見つかりません。DirectWriteを使います。"), TVTest::LOG_TYPE_WARNING);
+        }
+    }
+
     auto renderer = std::make_unique<aribcaption::Renderer>(*context);
     if (!renderer->Initialize(index == STREAM_CAPTION ? aribcaption::CaptionType::kCaption :
-                                                        aribcaption::CaptionType::kSuperimpose))
+                                                        aribcaption::CaptionType::kSuperimpose,
+                              aribcaption::FontProviderType::kAuto,
+                              m_fFreeType && m_hFreetypeDll ? aribcaption::TextRendererType::kFreetype :
+                                                              aribcaption::TextRendererType::kDirectWrite))
     {
         return false;
     }
@@ -1323,6 +1352,7 @@ void CTVCaption2::InitializeSettingsDlg(HWND hDlg)
     AddToComboBoxList(hDlg, IDC_COMBO_METHOD, METHOD_LIST);
     SendDlgItemMessage(hDlg, IDC_COMBO_METHOD, CB_SETCURSEL, min(max(m_paintingMethod - 2, 0), 1), 0);
 
+    CheckDlgButton(hDlg, IDC_CHECK_FREETYPE, m_fFreeType ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(hDlg, IDC_CHECK_CAPTION, m_showFlags[STREAM_CAPTION] ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(hDlg, IDC_CHECK_SUPERIMPOSE, m_showFlags[STREAM_SUPERIMPOSE] ? BST_CHECKED : BST_UNCHECKED);
     SetDlgItemInt(hDlg, IDC_EDIT_DELAY, m_delayTime[STREAM_CAPTION], TRUE);
@@ -1406,6 +1436,10 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
                 m_paintingMethod = min(max(m_paintingMethod, 0), 1) + 2;
                 fSave = fReDisp = true;
             }
+            break;
+        case IDC_CHECK_FREETYPE:
+            m_fFreeType = IsDlgButtonChecked(hDlg, IDC_CHECK_FREETYPE) != BST_UNCHECKED;
+            fSave = fReDisp = true;
             break;
         case IDC_CHECK_CAPTION:
             m_showFlags[STREAM_CAPTION] = IsDlgButtonChecked(hDlg, IDC_CHECK_CAPTION) != BST_UNCHECKED ? 65535 : 0;

@@ -75,6 +75,7 @@ private:
     TCHAR m_szFaceName[3][LF_FACESIZE];
     int m_settingsIndex;
     int m_paintingMethod;
+    bool m_fFreeType;
     int m_showFlags[STREAM_MAX];
     int m_delayTime[STREAM_MAX];
     bool m_fNoBackground;
@@ -99,6 +100,7 @@ private:
     bool m_fNeedtoShow;
     bool m_fShowLang2;
     std::atomic_bool m_fProfileC;
+    HMODULE m_hFreetypeDll;
 
     // ストリーム解析
     std::recursive_mutex m_streamLock;

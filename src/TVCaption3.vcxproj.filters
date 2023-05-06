@@ -332,6 +332,9 @@
     <ClCompile Include="ViewerClockEstimator.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\text_renderer_freetype.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TVCaption3.rc">

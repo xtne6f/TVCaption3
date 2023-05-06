@@ -21,6 +21,7 @@
 #define IDC_COMBO_SETTINGS                      1003
 #define IDC_SETTINGS_ADD                        1004
 #define IDC_SETTINGS_DELETE                     1005
+#define IDC_CHECK_FREETYPE                      1006
 #define IDC_COMBO_FACE                          1007
 #define IDC_COMBO_FACE1                         1008
 #define IDC_COMBO_FACE2                         1009

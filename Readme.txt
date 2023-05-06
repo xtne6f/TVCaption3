@@ -34,6 +34,11 @@ Method
     字幕の表示方法
     # レイヤードウィンドウ[=2]、もしくは映像と合成[=3](要EnOsdCompositor[=1])の
     # いずれかを指定してください。
+FreeType
+    描画にFreeTypeライブラリを使う[=1]かどうか
+    # TVTest.exeのあるフォルダにfreetype.dll(
+    # https://github.com/ubawurinna/freetype-windows-binaries の2.13.0かこれと互
+    # 換のもの)が必要です。
 ShowFlags / ShowFlagsSuper
     字幕/文字スーパーを表示するかどうかのフラグ
     # 表示する[=65535]または表示しない[=0]のどちらかを指定してください。
@@ -85,6 +90,7 @@ RomSoundList*
 
 ■ライセンス
 MITとします。
+設定によりFreeTypeライブラリ( https://freetype.org/ )を動的リンクします。
 
 ■ソース
 https://github.com/xtne6f/TVCaption3

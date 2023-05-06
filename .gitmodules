@@ -1,3 +1,6 @@
 [submodule "src/aribcaption"]
 	path = src/aribcaption
 	url = https://github.com/xqq/libaribcaption.git
+[submodule "src/freetype"]
+	path = src/freetype
+	url = https://github.com/ubawurinna/freetype-windows-binaries.git
