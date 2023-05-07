@@ -1343,8 +1343,9 @@ void CTVCaption2::InitializeSettingsDlg(HWND hDlg)
             SendMessage(hItem, CB_SETCURSEL, 0, 0);
         }
         else if (SendMessage(hItem, CB_SELECTSTRING, 0, reinterpret_cast<LPARAM>(m_szFaceName[i])) == CB_ERR) {
-            SendMessage(hItem, CB_SETCURSEL, SendMessage(hItem, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(m_szFaceName[i])), 0);
+            SetWindowText(hItem, m_szFaceName[i]);
         }
+        SendMessage(hItem, EM_LIMITTEXT, _countof(m_szFaceName[0]) - 1, 0);
     }
 
     static const LPCTSTR METHOD_LIST[] = { TEXT("2-レイヤードウィンドウ"), TEXT("3-映像と合成"), nullptr };
@@ -1422,6 +1423,9 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
         case IDC_COMBO_FACE1:
         case IDC_COMBO_FACE2:
             if (HIWORD(wParam) == CBN_SELCHANGE) {
+                PostMessage(hDlg, WM_COMMAND, MAKELONG(LOWORD(wParam), CBN_EDITCHANGE), lParam);
+            }
+            else if (HIWORD(wParam) == CBN_EDITCHANGE) {
                 int i = LOWORD(wParam) - IDC_COMBO_FACE;
                 GetDlgItemText(hDlg, IDC_COMBO_FACE + i, m_szFaceName[i], _countof(m_szFaceName[0]));
                 if (m_szFaceName[i][0] == TEXT(' ') && m_szFaceName[i][1] == TEXT('(')) {
