@@ -57,6 +57,11 @@ OrnStrokeWidth
     # StrokeWidthが0より大きいときは無視されます。
 ReplaceFullAlnum
     英数字を半角置換する[=1]かどうか
+    # 英数字およびASCIIコードの範囲の記号を置換します。
+ReplaceFullJapanese
+    日本語の約物などを半角置換する[=1]かどうか
+    # 句読点やかぎ括弧など、描画が改善する見込みの高い文字を置換します。
+    # ReplaceFullAlnumの文字と部分的に重複します。
 ReplaceDrcs
     DRCS図形を文字に置換する[=1]かどうか
     # DRCS(Dynamic Redefinable Character Set)図形を対応する文字にできるだけ置換

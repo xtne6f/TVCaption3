@@ -34,6 +34,7 @@
 #define IDC_EDIT_ORN_STROKE_WIDTH               1024
 #define IDC_CHECK_REPLACE_FULL_ALNUM            1025
 #define IDC_CHECK_REPLACE_DRCS                  1026
+#define IDC_CHECK_REPLACE_FULL_JAPANESE         1027
 #define IDC_CHECK_IGNORE_SMALL                  1030
 #define IDC_CHECK_ROMSOUND                      1032
 #define IDC_CHECK_CUST_ROMSOUND                 1040

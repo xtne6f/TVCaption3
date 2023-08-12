@@ -40,6 +40,7 @@ CTVCaption2::CTVCaption2()
     , m_strokeWidth(0)
     , m_ornStrokeWidth(0)
     , m_fReplaceFullAlnum(false)
+    , m_fReplaceFullJapanese(false)
     , m_fReplaceDrcs(false)
     , m_fIgnoreSmall(false)
     , m_fInitializeSettingsDlg(false)
@@ -56,10 +57,6 @@ CTVCaption2::CTVCaption2()
     , m_caption1Pid(-1)
     , m_caption2Pid(-1)
 {
-    m_szFaceName[0][0] = 0;
-    m_szFaceName[1][0] = 0;
-    m_szFaceName[2][0] = 0;
-
     for (int index = 0; index < STREAM_MAX; ++index) {
         m_showFlags[index] = 0;
         m_delayTime[index] = 0;
@@ -382,9 +379,12 @@ void CTVCaption2::LoadSettings()
         vbuf = GetPrivateProfileSectionBuffer(section, m_iniPath.c_str());
     }
     LPCTSTR buf = vbuf.data();
-    GetBufferedProfileString(buf, TEXT("FaceName"), TEXT(""), m_szFaceName[0], _countof(m_szFaceName[0]));
-    GetBufferedProfileString(buf, TEXT("FaceName1"), TEXT(""), m_szFaceName[1], _countof(m_szFaceName[1]));
-    GetBufferedProfileString(buf, TEXT("FaceName2"), TEXT(""), m_szFaceName[2], _countof(m_szFaceName[2]));
+    GetBufferedProfileString(buf, TEXT("FaceName"), TEXT(""), val, _countof(val));
+    m_faceName[0] = val;
+    GetBufferedProfileString(buf, TEXT("FaceName1"), TEXT(""), val, _countof(val));
+    m_faceName[1] = val;
+    GetBufferedProfileString(buf, TEXT("FaceName2"), TEXT(""), val, _countof(val));
+    m_faceName[2] = val;
     m_paintingMethod    = GetBufferedProfileInt(buf, TEXT("Method"), 2);
     m_fFreeType         = GetBufferedProfileInt(buf, TEXT("FreeType"), 0) != 0;
     m_showFlags[STREAM_CAPTION]     = GetBufferedProfileInt(buf, TEXT("ShowFlags"), 65535);
@@ -394,7 +394,8 @@ void CTVCaption2::LoadSettings()
     m_fNoBackground     = GetBufferedProfileInt(buf, TEXT("NoBackground"), 0) != 0;
     m_strokeWidth       = GetBufferedProfileInt(buf, TEXT("StrokeWidth"), 30);
     m_ornStrokeWidth    = GetBufferedProfileInt(buf, TEXT("OrnStrokeWidth"), 50);
-    m_fReplaceFullAlnum = GetBufferedProfileInt(buf, TEXT("ReplaceFullAlnum"), 0) != 0;
+    m_fReplaceFullAlnum = GetBufferedProfileInt(buf, TEXT("ReplaceFullAlnum"), 1) != 0;
+    m_fReplaceFullJapanese = GetBufferedProfileInt(buf, TEXT("ReplaceFullJapanese"), 1) != 0;
     m_fReplaceDrcs      = GetBufferedProfileInt(buf, TEXT("ReplaceDrcs"), 0) != 0;
     m_fIgnoreSmall      = GetBufferedProfileInt(buf, TEXT("IgnoreSmall"), 0) != 0;
     GetBufferedProfileString(buf, TEXT("RomSoundList"), TEXT(""), val, _countof(val));
@@ -413,9 +414,9 @@ void CTVCaption2::SaveSettings() const
     if (m_settingsIndex > 0) {
         _stprintf_s(section, TEXT("Settings%d"), m_settingsIndex);
     }
-    WritePrivateProfileString(section, TEXT("FaceName"), m_szFaceName[0], m_iniPath.c_str());
-    WritePrivateProfileString(section, TEXT("FaceName1"), m_szFaceName[1], m_iniPath.c_str());
-    WritePrivateProfileString(section, TEXT("FaceName2"), m_szFaceName[2], m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("FaceName"), m_faceName[0].c_str(), m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("FaceName1"), m_faceName[1].c_str(), m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("FaceName2"), m_faceName[2].c_str(), m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("Method"), m_paintingMethod, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("FreeType"), m_fFreeType, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("ShowFlags"), m_showFlags[STREAM_CAPTION], m_iniPath.c_str());
@@ -426,6 +427,7 @@ void CTVCaption2::SaveSettings() const
     WritePrivateProfileInt(section, TEXT("StrokeWidth"), m_strokeWidth, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("OrnStrokeWidth"), m_ornStrokeWidth, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("ReplaceFullAlnum"), m_fReplaceFullAlnum, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("ReplaceFullJapanese"), m_fReplaceFullJapanese, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("ReplaceDrcs"), m_fReplaceDrcs, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("IgnoreSmall"), m_fIgnoreSmall, m_iniPath.c_str());
     WritePrivateProfileString(section, TEXT("RomSoundList"), m_romSoundList.c_str(), m_iniPath.c_str());
@@ -776,6 +778,7 @@ bool CTVCaption2::ResetCaptionDecoder(STREAM_INDEX index, aribcaption::Context *
         return false;
     }
     decoder->SetReplaceMSZFullWidthAlphanumeric(m_fReplaceFullAlnum);
+    decoder->SetReplaceMSZFullWidthJapanese(m_fReplaceFullJapanese);
     decoder->SwitchLanguage(m_fShowLang2 ? aribcaption::LanguageId::kSecond : aribcaption::LanguageId::kFirst);
     decoder->SetProfile(m_fProfileC ? aribcaption::Profile::kProfileC : aribcaption::Profile::kProfileA);
     m_captionDecoder[index].swap(decoder);
@@ -827,9 +830,9 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
 
     // 各種の描画オプションを適用
     std::vector<std::string> fontFamily;
-    for (size_t i = 0; i < _countof(m_szFaceName); ++i) {
-        if (m_szFaceName[i][0]) {
-            fontFamily.push_back(aribcaption::wchar::WideStringToUTF8(m_szFaceName[i]));
+    for (size_t i = 0; i < _countof(m_faceName); ++i) {
+        if (!m_faceName[i].empty()) {
+            fontFamily.push_back(aribcaption::wchar::WideStringToUTF8(m_faceName[i]));
         }
     }
     if (!fontFamily.empty()) {
@@ -1339,13 +1342,13 @@ void CTVCaption2::InitializeSettingsDlg(HWND hDlg)
         SendMessage(hItem, CB_RESETCONTENT, 0, 0);
         SendMessage(hItem, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(TEXT(" (指定なし)")));
         AddFaceNameToComboBoxList(hDlg, IDC_COMBO_FACE + i);
-        if (!m_szFaceName[i][0]) {
+        if (m_faceName[i].empty()) {
             SendMessage(hItem, CB_SETCURSEL, 0, 0);
         }
-        else if (SendMessage(hItem, CB_SELECTSTRING, 0, reinterpret_cast<LPARAM>(m_szFaceName[i])) == CB_ERR) {
-            SetWindowText(hItem, m_szFaceName[i]);
+        else if (SendMessage(hItem, CB_SELECTSTRING, 0, reinterpret_cast<LPARAM>(m_faceName[i].c_str())) == CB_ERR) {
+            SetWindowText(hItem, m_faceName[i].c_str());
         }
-        SendMessage(hItem, EM_LIMITTEXT, _countof(m_szFaceName[0]) - 1, 0);
+        SendMessage(hItem, EM_LIMITTEXT, SETTING_VALUE_MAX - 1, 0);
     }
 
     static const LPCTSTR METHOD_LIST[] = { TEXT("2-レイヤードウィンドウ"), TEXT("3-映像と合成"), nullptr };
@@ -1363,6 +1366,7 @@ void CTVCaption2::InitializeSettingsDlg(HWND hDlg)
     SetDlgItemInt(hDlg, IDC_EDIT_ORN_STROKE_WIDTH, m_ornStrokeWidth, FALSE);
 
     CheckDlgButton(hDlg, IDC_CHECK_REPLACE_FULL_ALNUM, m_fReplaceFullAlnum ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(hDlg, IDC_CHECK_REPLACE_FULL_JAPANESE, m_fReplaceFullJapanese ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(hDlg, IDC_CHECK_REPLACE_DRCS, m_fReplaceDrcs ? BST_CHECKED : BST_UNCHECKED);
     CheckDlgButton(hDlg, IDC_CHECK_IGNORE_SMALL, m_fIgnoreSmall ? BST_CHECKED : BST_UNCHECKED);
     bool fCheckRomSound = !m_romSoundList.empty() && m_romSoundList[0] != TEXT(';');
@@ -1427,10 +1431,12 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
             }
             else if (HIWORD(wParam) == CBN_EDITCHANGE) {
                 int i = LOWORD(wParam) - IDC_COMBO_FACE;
-                GetDlgItemText(hDlg, IDC_COMBO_FACE + i, m_szFaceName[i], _countof(m_szFaceName[0]));
-                if (m_szFaceName[i][0] == TEXT(' ') && m_szFaceName[i][1] == TEXT('(')) {
-                    m_szFaceName[i][0] = 0;
+                TCHAR val[SETTING_VALUE_MAX];
+                if (GetDlgItemText(hDlg, IDC_COMBO_FACE + i, val, _countof(val)) == 0 ||
+                    (val[0] == TEXT(' ') && val[1] == TEXT('('))) {
+                    val[0] = 0;
                 }
+                m_faceName[i] = val;
                 fSave = fReDisp = true;
             }
             break;
@@ -1473,6 +1479,10 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
             break;
         case IDC_CHECK_REPLACE_FULL_ALNUM:
             m_fReplaceFullAlnum = IsDlgButtonChecked(hDlg, IDC_CHECK_REPLACE_FULL_ALNUM) != BST_UNCHECKED;
+            fSave = fReDisp = true;
+            break;
+        case IDC_CHECK_REPLACE_FULL_JAPANESE:
+            m_fReplaceFullJapanese = IsDlgButtonChecked(hDlg, IDC_CHECK_REPLACE_FULL_JAPANESE) != BST_UNCHECKED;
             fSave = fReDisp = true;
             break;
         case IDC_CHECK_REPLACE_DRCS:

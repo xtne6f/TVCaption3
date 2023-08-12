@@ -72,7 +72,7 @@ private:
 
     // 設定
     tstring m_iniPath;
-    TCHAR m_szFaceName[3][LF_FACESIZE];
+    tstring m_faceName[3];
     int m_settingsIndex;
     int m_paintingMethod;
     bool m_fFreeType;
@@ -82,6 +82,7 @@ private:
     int m_strokeWidth;
     int m_ornStrokeWidth;
     bool m_fReplaceFullAlnum;
+    bool m_fReplaceFullJapanese;
     bool m_fReplaceDrcs;
     bool m_fIgnoreSmall;
     tstring m_romSoundList;
