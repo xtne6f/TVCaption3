@@ -14,7 +14,7 @@ const UINT WM_APP_DONE_SIZE = WM_APP + 3;
 const UINT WM_APP_RESET_OSDS = WM_APP + 4;
 
 const TCHAR INFO_PLUGIN_NAME[] = TEXT("TVCaption3");
-const TCHAR INFO_DESCRIPTION[] = TEXT("字幕を表示");
+const TCHAR INFO_DESCRIPTION[] = TEXT("字幕を表示 (ver.1.0)");
 const TCHAR TV_CAPTION2_WINDOW_CLASS[] = TEXT("TVTest TVCaption3");
 
 const TCHAR ROMSOUND_ROM_ENABLED[] = TEXT("!00:!01:!02:!03:!04:!05:!06:!07:!08:!09:!10:!11:!12:!13:!14:!15:::");

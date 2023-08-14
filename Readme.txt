@@ -1,10 +1,24 @@
-﻿TVTest TVCaption3 Plugin (暫定)
+﻿TVTest TVCaption3 Plugin ver.1.0
 
 ■概要
 TVCaptionMod2の字幕のデコードやレンダリング周りをlibaribcaption(
-https://github.com/xqq/libaribcaption )に置き換えてみた字幕プラグインです。いま
-のところ実験的な状態なので常用はお勧めしません(例外で落ちても知りません)。
-Visual Studio 2017以降ならたぶんビルドできます。
+https://github.com/xqq/libaribcaption )に置き換えてみた字幕プラグインです。
+
+■動作環境
+・Windows10 ※より古い環境でも動くかも
+・TVTest ver.0.10.0-dev ※より古い環境でも動くかも
+・必要ランタイム: 2015-2022 Visual C++ 再頒布可能パッケージ
+  ・ビルド環境: Visual Studio Express 2017 for Windows Desktop
+
+■使い方
+TVTestのプラグインフォルダにTVCaption3.tvtpを入れ、右クリックメニューからプラグ
+インを有効にして、字幕のある番組で字幕が表示されればOKです。
+
+プラグイン設定は 右クリックメニュー→設定→プラグイン→TVCaption3 から行います。
+各設定の詳細は後述「設定ファイルについて」の対応する項目を参照してください。
+
+緊急地震速報の文字スーパー等で音を出したいときは、設定の「内蔵音再生する」を有効
+にしてください。
 
 ■設定ファイルについて
 以下は設定ファイル"TVCaption3.ini"のキーの説明です。
