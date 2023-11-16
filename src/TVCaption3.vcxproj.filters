@@ -237,6 +237,9 @@
     <ClInclude Include="ViewerClockEstimator.hpp">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="aribcaption\src\renderer\open_type_gsub.hpp">
+      <Filter>ヘッダー ファイル\aribcaption\renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aribcaption\src\base\md5.c">
@@ -333,6 +336,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="aribcaption\src\renderer\text_renderer_freetype.cpp">
+      <Filter>ソース ファイル\aribcaption\renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="aribcaption\src\renderer\open_type_gsub.cpp">
       <Filter>ソース ファイル\aribcaption\renderer</Filter>
     </ClCompile>
   </ItemGroup>

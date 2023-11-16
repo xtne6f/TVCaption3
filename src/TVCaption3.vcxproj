@@ -225,6 +225,7 @@
     <ClInclude Include="aribcaption\src\renderer\font_provider_directwrite.hpp" />
     <ClInclude Include="aribcaption\src\renderer\font_provider_fontconfig.hpp" />
     <ClInclude Include="aribcaption\src\renderer\font_provider_gdi.hpp" />
+    <ClInclude Include="aribcaption\src\renderer\open_type_gsub.hpp" />
     <ClInclude Include="aribcaption\src\renderer\rect.hpp" />
     <ClInclude Include="aribcaption\src\renderer\region_renderer.hpp" />
     <ClInclude Include="aribcaption\src\renderer\renderer_impl.hpp" />
@@ -262,6 +263,7 @@
     <ClCompile Include="aribcaption\src\renderer\font_provider_directwrite.cpp" />
     <ClCompile Include="aribcaption\src\renderer\font_provider_gdi.cpp" />
     <ClCompile Include="aribcaption\src\renderer\image_capi.cpp" />
+    <ClCompile Include="aribcaption\src\renderer\open_type_gsub.cpp" />
     <ClCompile Include="aribcaption\src\renderer\region_renderer.cpp" />
     <ClCompile Include="aribcaption\src\renderer\renderer.cpp" />
     <ClCompile Include="aribcaption\src\renderer\renderer_capi.cpp" />
