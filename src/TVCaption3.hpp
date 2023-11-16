@@ -59,7 +59,7 @@ private:
     bool ResetCaptionDecoder(STREAM_INDEX index, aribcaption::Context *context = nullptr);
     bool ResetCaptionContext(STREAM_INDEX index);
     void ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue);
-    bool RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds, bool &fTextureModified);
+    void RenderCaption(STREAM_INDEX index, bool fRedraw);
     void OnSize(STREAM_INDEX index);
     static BOOL CALLBACK StreamCallback(BYTE *pData, void *pClientData);
     static LRESULT CALLBACK VideoStreamCallback(DWORD Format, const void *pData, SIZE_T Size, void *pClientData);

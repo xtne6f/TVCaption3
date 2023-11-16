@@ -733,6 +733,8 @@ LRESULT CALLBACK CTVCaption2::PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wPara
         // aribcaption::Decoder::Flush()では不十分
         pThis->ResetCaptionDecoder(STREAM_CAPTION);
         pThis->ResetCaptionDecoder(STREAM_SUPERIMPOSE);
+        pThis->m_captionRenderer[STREAM_CAPTION]->Flush();
+        pThis->m_captionRenderer[STREAM_SUPERIMPOSE]->Flush();
         return 0;
     case WM_APP_PROCESS_CAPTION:
         pThis->ProcessCaption(pThis->m_caption1PesQueue);
@@ -855,8 +857,6 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
 
 void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
 {
-    bool fTextureModified = false;
-
     for (int index = 0; index < STREAM_MAX; ++index) {
         if (m_clearPts[index] >= 0) {
             LONGLONG ptsPcrDiff = 0x100000000;
@@ -867,12 +867,9 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             }
             // 期限付き字幕を消去
             if (ptsPcrDiff >= 0x100000000) {
-                HideOsds(index);
                 m_clearPts[index] = -1;
                 m_renderedPts[index] = -1;
-                if (m_osdCompositor.DeleteTexture(0, index + 1)) {
-                    fTextureModified = true;
-                }
+                RenderCaption(static_cast<STREAM_INDEX>(index), false);
             }
         }
     }
@@ -938,14 +935,9 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
         }
 
         if (status == aribcaption::DecodeStatus::kGotCaption) {
-            bool fHideOsds = false;
             if (decodeResult.caption->flags & aribcaption::CaptionFlags::kCaptionFlagsClearScreen) {
                 // 消去
-                fHideOsds = true;
                 m_clearPts[index] = -1;
-                if (m_osdCompositor.DeleteTexture(0, index + 1)) {
-                    fTextureModified = true;
-                }
             }
             if ((decodeResult.caption->flags & aribcaption::CaptionFlags::kCaptionFlagsWaitDuration) &&
                 decodeResult.caption->wait_duration != aribcaption::DURATION_INDEFINITE)
@@ -960,26 +952,30 @@ void CTVCaption2::ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue)
             }
 
             m_captionRenderer[index]->AppendCaption(std::move(*decodeResult.caption));
-            m_renderedPts[index] = RenderCaption(index, pts, fHideOsds, fTextureModified) ? pts : -1;
+            m_renderedPts[index] = pts;
+            RenderCaption(index, false);
         }
-    }
-    if (fTextureModified) {
-        m_osdCompositor.UpdateSurface();
     }
 }
 
 
-bool CTVCaption2::RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds, bool &fTextureModified)
+void CTVCaption2::RenderCaption(STREAM_INDEX index, bool fRedraw)
 {
-    RECT rcVideo;
-    if (GetVideoSurfaceRect(m_hwndContainer, &rcVideo)) {
-        if (m_captionRenderer[index]->SetFrameSize(rcVideo.right - rcVideo.left, rcVideo.bottom - rcVideo.top)) {
+    bool fTextureModified = false;
+    bool fRenderedOrUnchanged = false;
+
+    if (m_renderedPts[index] >= 0) {
+        RECT rcVideo;
+        if (GetVideoSurfaceRect(m_hwndContainer, &rcVideo) &&
+            m_captionRenderer[index]->SetFrameSize(rcVideo.right - rcVideo.left, rcVideo.bottom - rcVideo.top))
+        {
+            bool fHideOsds = false;
             size_t osdPrepareCount = 0;
             aribcaption::RenderResult renderResult;
             auto renderStatus = aribcaption::RenderStatus::kError;
             try {
                 if (m_showFlags[index] != 0) {
-                    renderStatus = m_captionRenderer[index]->Render(pts, renderResult);
+                    renderStatus = m_captionRenderer[index]->Render(m_renderedPts[index], renderResult);
                 }
             }
             catch (...) {
@@ -987,7 +983,21 @@ bool CTVCaption2::RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds
                 ResetCaptionContext(index);
             }
 
-            if (renderStatus == aribcaption::RenderStatus::kGotImage) {
+            if (renderStatus == aribcaption::RenderStatus::kNoImage ||
+                renderStatus == aribcaption::RenderStatus::kGotImage ||
+                renderStatus == aribcaption::RenderStatus::kGotImageUnchanged)
+            {
+                fRenderedOrUnchanged = true;
+                if (renderStatus != aribcaption::RenderStatus::kGotImageUnchanged || fRedraw) {
+                    fHideOsds = true;
+                    if (m_osdCompositor.DeleteTexture(0, index + 1)) {
+                        fTextureModified = true;
+                    }
+                }
+            }
+            if (renderStatus == aribcaption::RenderStatus::kGotImage ||
+                (renderStatus == aribcaption::RenderStatus::kGotImageUnchanged && fRedraw))
+            {
                 int shiftY = 0;
                 if (m_fProfileC) {
                     // そのままだと描画面の上方向に突き抜けるので底に詰める
@@ -1082,10 +1092,19 @@ bool CTVCaption2::RenderCaption(STREAM_INDEX index, LONGLONG pts, bool fHideOsds
             for (; osdPrepareCount > 0; --osdPrepareCount, ++m_osdShowCount[index]) {
                 m_pOsdList[index][m_osdShowCount[index]]->Show();
             }
-            return renderStatus == aribcaption::RenderStatus::kGotImage;
         }
     }
-    return false;
+
+    if (!fRenderedOrUnchanged) {
+        // 消去
+        HideOsds(index);
+        if (m_osdCompositor.DeleteTexture(0, index + 1)) {
+            fTextureModified = true;
+        }
+    }
+    if (fTextureModified) {
+        m_osdCompositor.UpdateSurface();
+    }
 }
 
 
@@ -1094,14 +1113,8 @@ void CTVCaption2::OnSize(STREAM_INDEX index)
     for (size_t i = 0; i < m_pOsdList[index].size(); ++i) {
         m_pOsdList[index][i]->OnParentSize();
     }
-    if (m_renderedPts[index] >= 0) {
-        // 再描画
-        bool fTextureModified = m_osdCompositor.DeleteTexture(0, index + 1);
-        RenderCaption(index, m_renderedPts[index], true, fTextureModified);
-        if (fTextureModified) {
-            m_osdCompositor.UpdateSurface();
-        }
-    }
+    // 再描画
+    RenderCaption(index, true);
 }
 
 
