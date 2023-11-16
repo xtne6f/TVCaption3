@@ -104,4 +104,9 @@ inline int extract_ts_header_scrambling_control(const unsigned char *packet) { r
 inline int extract_ts_header_adaptation(const unsigned char *packet) { return (packet[3] >> 4) & 0x03; }
 inline int extract_ts_header_counter(const unsigned char *packet) { return packet[3] & 0x0f; }
 
+bool BrowseFolderDialog(HWND hwndOwner, TCHAR (&szDirectory)[MAX_PATH], LPCTSTR pszTitle);
+
+bool SaveImageAsBmp(LPCTSTR fileName, const BITMAPINFOHEADER &bih, const void *pBits);
+bool SaveImageAsPngOrJpeg(HMODULE hTVTestImage, LPCTSTR fileName, bool pngOrJpeg, int compressionLevelOrQuality, const BITMAPINFOHEADER &bih, const void *pBits);
+
 #endif // INCLUDE_UTIL_HPP

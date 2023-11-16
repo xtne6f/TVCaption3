@@ -29,11 +29,15 @@ enum {
 enum {
     ID_COMMAND_SWITCH_LANG,
     ID_COMMAND_SWITCH_SETTING,
+    ID_COMMAND_CAPTURE,
+    ID_COMMAND_SAVE,
 };
 }
 
 CTVCaption2::CTVCaption2()
-    : m_settingsIndex(0)
+    : m_jpegQuality(0)
+    , m_pngCompressionLevel(0)
+    , m_settingsIndex(0)
     , m_paintingMethod(0)
     , m_fFreeType(false)
     , m_fNoBackground(false)
@@ -44,6 +48,7 @@ CTVCaption2::CTVCaption2()
     , m_fReplaceDrcs(false)
     , m_fIgnoreSmall(false)
     , m_fInitializeSettingsDlg(false)
+    , m_hTVTestImage(nullptr)
     , m_hwndPainting(nullptr)
     , m_hwndContainer(nullptr)
     , m_fNeedtoShow(false)
@@ -57,6 +62,8 @@ CTVCaption2::CTVCaption2()
     , m_caption1Pid(-1)
     , m_caption2Pid(-1)
 {
+    m_szCaptureSaveFormat[0] = 0;
+
     for (int index = 0; index < STREAM_MAX; ++index) {
         m_showFlags[index] = 0;
         m_delayTime[index] = 0;
@@ -119,7 +126,7 @@ bool CTVCaption2::Initialize()
     m_pApp->RegisterPluginIconFromResource(g_hinstDLL, MAKEINTRESOURCE(IDB_ICON));
 
     // コマンドを登録
-    TVTest::PluginCommandInfo ciList[2];
+    TVTest::PluginCommandInfo ciList[4];
     ciList[0].ID = ID_COMMAND_SWITCH_LANG;
     ciList[0].State = TVTest::PLUGIN_COMMAND_STATE_DISABLED;
     ciList[0].pszText = L"SwitchLang";
@@ -130,6 +137,16 @@ bool CTVCaption2::Initialize()
     ciList[1].pszText = L"SwitchSetting";
     ciList[1].pszName = L"表示設定切り替え";
     ciList[1].hbmIcon = static_cast<HBITMAP>(LoadImage(g_hinstDLL, MAKEINTRESOURCE(IDB_SWITCH_SETTING), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    ciList[2].ID = ID_COMMAND_CAPTURE;
+    ciList[2].State = 0;
+    ciList[2].pszText = L"Capture";
+    ciList[2].pszName = L"字幕付き画像のコピー";
+    ciList[2].hbmIcon = nullptr;
+    ciList[3].ID = ID_COMMAND_SAVE;
+    ciList[3].State = 0;
+    ciList[3].pszText = L"Save";
+    ciList[3].pszName = L"字幕付き画像の保存";
+    ciList[3].hbmIcon = nullptr;
     for (int i = 0; i < _countof(ciList); ++i) {
         ciList[i].Size = sizeof(ciList[0]);
         ciList[i].Flags = ciList[i].hbmIcon ? TVTest::PLUGIN_COMMAND_FLAG_ICONIZE : 0;
@@ -347,6 +364,11 @@ bool CTVCaption2::EnablePlugin(bool fEnable)
         // 内蔵音再生停止
         PlaySound(nullptr, nullptr, 0);
 
+        if (m_hTVTestImage) {
+            FreeLibrary(m_hTVTestImage);
+            m_hTVTestImage = nullptr;
+        }
+
         for (int index = 0; index < STREAM_MAX; ++index) {
             m_captionRenderer[index] = nullptr;
             m_captionDecoder[index] = nullptr;
@@ -370,6 +392,15 @@ void CTVCaption2::LoadSettings()
     std::vector<TCHAR> vbuf = GetPrivateProfileSectionBuffer(TEXT("Settings"), m_iniPath.c_str());
     TCHAR val[SETTING_VALUE_MAX];
     m_viewerClockEstimator.SetEnabled(GetBufferedProfileInt(vbuf.data(), TEXT("EstimateViewerDelay"), 1) != 0);
+    GetBufferedProfileString(vbuf.data(), TEXT("CaptureFolder"), TEXT(""), val, _countof(val));
+    m_captureFolder = val;
+    GetBufferedProfileString(vbuf.data(), TEXT("CaptureFileName"), TEXT("Capture"), val, _countof(val));
+    m_captureFileName = val;
+    GetBufferedProfileString(vbuf.data(), TEXT("CaptureFileNameFormat"), TEXT(""), val, _countof(val));
+    m_captureFileNameFormat = val;
+    GetBufferedProfileString(vbuf.data(), TEXT("CaptureSaveFormat"), TEXT("BMP"), m_szCaptureSaveFormat, _countof(m_szCaptureSaveFormat));
+    m_jpegQuality = GetBufferedProfileInt(vbuf.data(), TEXT("JpegQuality"), 90);
+    m_pngCompressionLevel = GetBufferedProfileInt(vbuf.data(), TEXT("PngCompressionLevel"), 6);
     m_settingsIndex = GetBufferedProfileInt(vbuf.data(), TEXT("SettingsIndex"), 0);
 
     // ここからはセクション固有
@@ -408,6 +439,12 @@ void CTVCaption2::SaveSettings() const
 {
     TCHAR section[32] = TEXT("Settings");
     WritePrivateProfileInt(section, TEXT("EstimateViewerDelay"), m_viewerClockEstimator.GetEnabled(), m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("CaptureFolder"), m_captureFolder.c_str(), m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("CaptureFileName"), m_captureFileName.c_str(), m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("CaptureFileNameFormat"), m_captureFileNameFormat.c_str(), m_iniPath.c_str());
+    WritePrivateProfileString(section, TEXT("CaptureSaveFormat"), m_szCaptureSaveFormat, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("JpegQuality"), m_jpegQuality, m_iniPath.c_str());
+    WritePrivateProfileInt(section, TEXT("PngCompressionLevel"), m_pngCompressionLevel, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("SettingsIndex"), m_settingsIndex, m_iniPath.c_str());
 
     // ここからはセクション固有
@@ -604,6 +641,12 @@ LRESULT CALLBACK CTVCaption2::EventCallback(UINT Event, LPARAM lParam1, LPARAM l
                 pThis->ResetCaptionContext(STREAM_SUPERIMPOSE);
                 pThis->PlayRomSound(16);
                 break;
+            case ID_COMMAND_CAPTURE:
+                pThis->OnCapture(false);
+                break;
+            case ID_COMMAND_SAVE:
+                pThis->OnCapture(true);
+                break;
             }
         }
         return TRUE;
@@ -617,6 +660,168 @@ LRESULT CALLBACK CTVCaption2::EventCallback(UINT Event, LPARAM lParam1, LPARAM l
         break;
     }
     return 0;
+}
+
+
+void CTVCaption2::OnCapture(bool fSaveToFile)
+{
+    void *pPackDib = m_pApp->CaptureImage();
+    if (!pPackDib) return;
+
+    BITMAPINFOHEADER *pBih = static_cast<BITMAPINFOHEADER*>(pPackDib);
+    if (pBih->biWidth > 0 && pBih->biHeight > 0 && (pBih->biBitCount == 24 || pBih->biBitCount == 32)) {
+        // 常に24bitビットマップにする
+        BITMAPINFOHEADER bih = *pBih;
+        bih.biBitCount = 24;
+        void *pBits;
+        HBITMAP hbm = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&bih), DIB_RGB_COLORS, &pBits, nullptr, 0);
+        if (hbm) {
+            BYTE *pBitmap = static_cast<BYTE*>(pPackDib) + sizeof(BITMAPINFOHEADER);
+            if (pBih->biBitCount == 24) {
+                SetDIBits(nullptr, hbm, 0, pBih->biHeight, pBitmap, reinterpret_cast<BITMAPINFO*>(pBih), DIB_RGB_COLORS);
+            }
+            else {
+                // 32-24bit変換
+                for (int y = 0; y < bih.biHeight; ++y) {
+                    BYTE *pDest = static_cast<BYTE*>(pBits) + (bih.biWidth * 3 + 3) / 4 * 4 * y;
+                    BYTE *pSrc = pBitmap + bih.biWidth * 4 * y;
+                    for (int x = 0; x < bih.biWidth; ++x) {
+                        memcpy(&pDest[3 * x], &pSrc[4 * x], 3);
+                    }
+                }
+            }
+
+            RECT rcVideo;
+            if (GetVideoContainerLayout(m_hwndContainer, nullptr, &rcVideo)) {
+                BITMAPINFOHEADER bihRes = bih;
+                bihRes.biWidth = rcVideo.right - rcVideo.left;
+                bihRes.biHeight = rcVideo.bottom - rcVideo.top;
+                // キャプチャ画像が表示中の動画サイズと異なるときは動画サイズのビットマップに変換する
+                if (bih.biWidth < bihRes.biWidth - 3 || bihRes.biWidth + 3 < bih.biWidth ||
+                    bih.biHeight < bihRes.biHeight - 3 || bihRes.biHeight + 3 < bih.biHeight)
+                {
+                    void *pBitsRes;
+                    HBITMAP hbmRes = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&bihRes), DIB_RGB_COLORS, &pBitsRes, nullptr, 0);
+                    if (hbmRes) {
+                        HDC hdc = CreateCompatibleDC(nullptr);
+                        if (hdc) {
+                            HBITMAP hbmResOld = static_cast<HBITMAP>(SelectObject(hdc, hbmRes));
+                            HDC hdcSrc = CreateCompatibleDC(hdc);
+                            if (hdcSrc) {
+                                HBITMAP hbmOld = static_cast<HBITMAP>(SelectObject(hdcSrc, hbm));
+                                int oldStretchMode = SetStretchBltMode(hdc, STRETCH_HALFTONE);
+                                StretchBlt(hdc, 0, 0, bihRes.biWidth, bihRes.biHeight, hdcSrc, 0, 0, bih.biWidth, bih.biHeight, SRCCOPY);
+                                SetStretchBltMode(hdc, oldStretchMode);
+                                SelectObject(hdcSrc, hbmOld);
+                                DeleteDC(hdcSrc);
+                                DeleteObject(hbm);
+                                hbm = hbmRes;
+                                bih = bihRes;
+                                pBits = pBitsRes;
+                                hbmRes = nullptr;
+                            }
+                            SelectObject(hdc, hbmResOld);
+                            DeleteDC(hdc);
+                        }
+                        if (hbmRes) {
+                            DeleteObject(hbmRes);
+                        }
+                    }
+                }
+
+                // ビットマップに表示中のOSDを合成
+                HDC hdc = CreateCompatibleDC(nullptr);
+                if (hdc) {
+                    HBITMAP hbmOld = static_cast<HBITMAP>(SelectObject(hdc, hbm));
+                    for (int i = 0; i < STREAM_MAX; ++i) {
+                        for (size_t j = 0; j < m_osdShowCount[i]; ++j) {
+                            int left, top;
+                            m_pOsdList[i][j]->GetPosition(&left, &top, nullptr, nullptr);
+                            m_pOsdList[i][j]->Compose(hdc, left - rcVideo.left, top - rcVideo.top);
+                        }
+                    }
+                    SelectObject(hdc, hbmOld);
+                    DeleteDC(hdc);
+                }
+            }
+
+            GdiFlush();
+            int sizeImage = (bih.biWidth * 3 + 3) / 4 * 4 * bih.biHeight;
+            if (fSaveToFile) {
+                // ファイルに保存
+                if (!m_captureFolder.empty()) {
+                    LPCTSTR sep = m_captureFolder.back() == TEXT('/') || m_captureFolder.back() == TEXT('\\') ? TEXT("") : TEXT("\\");
+                    tstring fileName;
+                    if (!m_captureFileNameFormat.empty()) {
+                        // 現在のコンテキストでファイル名をフォーマット
+                        TVTest::VarStringFormatInfo info = {};
+                        info.Flags = TVTest::VAR_STRING_FORMAT_FLAG_FILENAME;
+                        info.pszFormat = m_captureFileNameFormat.c_str();
+                        if (m_pApp->FormatVarString(&info)) {
+                            fileName = info.pszResult;
+                            m_pApp->MemoryFree(info.pszResult);
+                        }
+                    }
+                    if (fileName.empty()) {
+                        SYSTEMTIME st;
+                        GetLocalTime(&st);
+                        TCHAR t[64];
+                        _stprintf_s(t, TEXT("%d%02d%02d-%02d%02d%02d"), st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+                        fileName = m_captureFileName + t;
+                    }
+                    LPCTSTR ext = !_tcsicmp(m_szCaptureSaveFormat, TEXT("JPEG")) ? TEXT(".jpg") :
+                                  !_tcsicmp(m_szCaptureSaveFormat, TEXT("PNG")) ? TEXT(".png") : TEXT(".bmp");
+                    TCHAR suffix[4] = {};
+                    bool fSaved = false;
+                    for (int i = 1; i <= 30; ++i) {
+                        // ファイルがなければ書きこむ
+                        tstring path = m_captureFolder + sep + fileName + suffix + ext;
+                        if (GetFileAttributes(path.c_str()) == INVALID_FILE_ATTRIBUTES) {
+                            if (ext[1] == TEXT('b')) {
+                                fSaved = SaveImageAsBmp(path.c_str(), bih, pBits);
+                            }
+                            else {
+                                if (!m_hTVTestImage) {
+                                    m_hTVTestImage = LoadLibrary(TEXT("TVTest_Image.dll"));
+                                }
+                                if (!m_hTVTestImage) {
+                                    m_pApp->AddLog(L"TVTest_Image.dllの読み込みに失敗しました。");
+                                }
+                                else {
+                                    fSaved = SaveImageAsPngOrJpeg(m_hTVTestImage, path.c_str(), ext[1] == TEXT('p'),
+                                                                  ext[1] == TEXT('p') ? m_pngCompressionLevel : m_jpegQuality, bih, pBits);
+                                }
+                            }
+                            break;
+                        }
+                        _stprintf_s(suffix, TEXT("-%d"), i);
+                    }
+                    if (!fSaved) {
+                        m_pApp->AddLog(L"字幕付き画像の保存に失敗しました。");
+                    }
+                }
+            }
+            else if (OpenClipboard(m_hwndPainting)) {
+                // クリップボードにコピー
+                if (EmptyClipboard()) {
+                    HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, sizeof(BITMAPINFOHEADER) + sizeImage);
+                    if (hg) {
+                        BYTE *pClip = reinterpret_cast<BYTE*>(GlobalLock(hg));
+                        if (pClip) {
+                            memcpy(pClip, &bih, sizeof(BITMAPINFOHEADER));
+                            memcpy(pClip + sizeof(BITMAPINFOHEADER), pBits, sizeImage);
+                            GlobalUnlock(hg);
+                            if (!SetClipboardData(CF_DIB, hg)) GlobalFree(hg);
+                        }
+                        else GlobalFree(hg);
+                    }
+                }
+                CloseClipboard();
+            }
+            DeleteObject(hbm);
+        }
+    }
+    m_pApp->MemoryFree(pPackDib);
 }
 
 
@@ -1070,7 +1275,7 @@ void CTVCaption2::RenderCaption(STREAM_INDEX index, bool fRedraw)
                                 }
                                 CPseudoOSD &osd = *m_pOsdList[index][m_osdShowCount[index] + osdPrepareCount++];
                                 osd.Create(m_hwndContainer, g_hinstDLL);
-                                osd.SetImage(hbm, it->dst_x + rcVideo.left, shiftY + it->dst_y + rcVideo.top, it->width, it->height);
+                                osd.SetImage(hbm, pBits, it->dst_x + rcVideo.left, shiftY + it->dst_y + rcVideo.top, it->width, it->height);
                             }
                             else {
                                 if (m_paintingMethod == 3) {
@@ -1341,6 +1546,9 @@ void CTVCaption2::InitializeSettingsDlg(HWND hDlg)
 
     CheckDlgButton(hDlg, IDC_CHECK_ESTIMATE_VIEWER_DELAY, m_viewerClockEstimator.GetEnabled() ? BST_CHECKED : BST_UNCHECKED);
 
+    SetDlgItemText(hDlg, IDC_EDIT_CAPFOLDER, m_captureFolder.c_str());
+    SendDlgItemMessage(hDlg, IDC_EDIT_CAPFOLDER, EM_LIMITTEXT, MAX_PATH - 1, 0);
+
     int settingsCount = GetSettingsCount();
     SendDlgItemMessage(hDlg, IDC_COMBO_SETTINGS, CB_RESETCONTENT, 0, 0);
     for (int i = 0; i < settingsCount; ++i) {
@@ -1418,6 +1626,24 @@ INT_PTR CTVCaption2::ProcessSettingsDlg(HWND hDlg, UINT uMsg, WPARAM wParam, LPA
         case IDC_CHECK_ESTIMATE_VIEWER_DELAY:
             m_viewerClockEstimator.SetEnabled(IsDlgButtonChecked(hDlg, IDC_CHECK_ESTIMATE_VIEWER_DELAY) != BST_UNCHECKED);
             fSave = true;
+            break;
+        case IDC_EDIT_CAPFOLDER:
+            if (HIWORD(wParam) == EN_CHANGE) {
+                TCHAR dir[MAX_PATH];
+                GetDlgItemText(hDlg, IDC_EDIT_CAPFOLDER, dir, _countof(dir));
+                m_captureFolder = dir;
+                fSave = true;
+            }
+            break;
+        case IDC_CAPFOLDER_BROWSE:
+            {
+                TCHAR dir[MAX_PATH], title[64];
+                GetDlgItemText(hDlg, IDC_EDIT_CAPFOLDER, dir, _countof(dir));
+                GetDlgItemText(hDlg, IDC_STATIC_CAPFOLDER, title, _countof(title));
+                if (BrowseFolderDialog(hDlg, dir, title)) {
+                    SetDlgItemText(hDlg, IDC_EDIT_CAPFOLDER, dir);
+                }
+            }
             break;
         case IDC_COMBO_SETTINGS:
             if (HIWORD(wParam) == CBN_SELCHANGE) {

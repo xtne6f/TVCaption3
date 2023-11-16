@@ -10,6 +10,7 @@ CPseudoOSD::CPseudoOSD()
     , m_width(0)
     , m_height(0)
     , m_hbm(nullptr)
+    , m_pBits(nullptr)
     , m_fHide(true)
 {
 }
@@ -87,14 +88,16 @@ void CPseudoOSD::ClearImage()
     if (m_hbm) {
         DeleteObject(m_hbm);
         m_hbm = nullptr;
+        m_pBits = nullptr;
     }
 }
 
-void CPseudoOSD::SetImage(HBITMAP hbm, int x, int y, int width, int height)
+void CPseudoOSD::SetImage(HBITMAP hbm, void *pBits, int x, int y, int width, int height)
 {
     SetPosition(x, y, width, height);
     ClearImage();
     m_hbm = hbm;
+    m_pBits = pBits;
 }
 
 void CPseudoOSD::SetPosition(int x, int y, int width, int height)
@@ -110,7 +113,7 @@ void CPseudoOSD::SetPosition(int x, int y, int width, int height)
     }
 }
 
-void CPseudoOSD::GetPosition(int *x, int *y, int *width, int *height)
+void CPseudoOSD::GetPosition(int *x, int *y, int *width, int *height) const
 {
     if (x) *x = m_x;
     if (y) *y = m_y;
@@ -129,6 +132,54 @@ void CPseudoOSD::OnParentSize()
     if (m_hwnd && m_fHide && IsWindowVisible(m_hwnd)) {
         ShowWindow(m_hwnd, SW_HIDE);
     }
+}
+
+namespace
+{
+// アルファ合成する
+void ComposeAlpha(BYTE *__restrict pBitsDest, const BYTE *__restrict pBits, int n)
+{
+    n *= 4;
+    for (int i = 0; i < n; i += 4) {
+        pBitsDest[i + 0] = ((pBits[i + 0] << 8) + (pBitsDest[i + 0] * (255 - pBits[i + 3]) + 255)) >> 8;
+        pBitsDest[i + 1] = ((pBits[i + 1] << 8) + (pBitsDest[i + 1] * (255 - pBits[i + 3]) + 255)) >> 8;
+        pBitsDest[i + 2] = ((pBits[i + 2] << 8) + (pBitsDest[i + 2] * (255 - pBits[i + 3]) + 255)) >> 8;
+        pBitsDest[i + 3] = 0;
+    }
+}
+}
+
+void CPseudoOSD::Compose(HDC hdc, int left, int top) const
+{
+    if (!hdc || !m_hwnd || !IsWindowVisible(m_hwnd) || !m_hbm || m_width < 1 || m_height < 1) return;
+    RECT rc;
+    GetClientRect(m_hwnd, &rc);
+    if (rc.right != m_width || rc.bottom != m_height) return;
+
+    // OSDのイメージを描画する一時ビットマップ
+    void *pBitsTmp;
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = rc.right;
+    bmi.bmiHeader.biHeight = rc.bottom;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+    HBITMAP hbmTmp = CreateDIBSection(nullptr, &bmi, DIB_RGB_COLORS, &pBitsTmp, nullptr, 0);
+    if (!hbmTmp) return;
+
+    HDC hdcTmp = CreateCompatibleDC(hdc);
+    if (hdcTmp) {
+        HBITMAP hbmOld = static_cast<HBITMAP>(SelectObject(hdcTmp, hbmTmp));
+        // アルファ合成のために背景をコピーしておく
+        BitBlt(hdcTmp, 0, 0, rc.right, rc.bottom, hdc, left, top, SRCCOPY);
+        GdiFlush();
+        ComposeAlpha(static_cast<BYTE*>(pBitsTmp), static_cast<BYTE*>(m_pBits), rc.right * rc.bottom);
+        BitBlt(hdc, left, top, rc.right, rc.bottom, hdcTmp, 0, 0, SRCCOPY);
+        SelectObject(hdcTmp, hbmOld);
+        DeleteDC(hdcTmp);
+    }
+    DeleteObject(hbmTmp);
 }
 
 void CPseudoOSD::Update()

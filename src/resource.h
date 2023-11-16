@@ -18,6 +18,8 @@
 #define IDW_ROM_12                              162
 #define IDW_ROM_13                              163
 #define IDC_CHECK_OSD                           1000
+#define IDC_EDIT_CAPFOLDER                      1001
+#define IDC_CAPFOLDER_BROWSE                    1002
 #define IDC_COMBO_SETTINGS                      1003
 #define IDC_SETTINGS_ADD                        1004
 #define IDC_SETTINGS_DELETE                     1005
@@ -37,5 +39,6 @@
 #define IDC_CHECK_REPLACE_FULL_JAPANESE         1027
 #define IDC_CHECK_IGNORE_SMALL                  1030
 #define IDC_CHECK_ROMSOUND                      1032
+#define IDC_STATIC_CAPFOLDER                    1033
 #define IDC_CHECK_CUST_ROMSOUND                 1040
 #define IDC_CHECK_ESTIMATE_VIEWER_DELAY         1041

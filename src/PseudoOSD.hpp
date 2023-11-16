@@ -13,14 +13,16 @@ public:
     void ClearImage();
     // 画像を設定する。受けとったビットマップはクラス側で破棄する
     // 乗算済みアルファの32bitビットマップであること
-    void SetImage(HBITMAP hbm, int x, int y, int width, int height);
-    void SetPosition(int x, int y, int width, int height);
-    void GetPosition(int *x, int *y, int *width, int *height);
+    void SetImage(HBITMAP hbm, void *pBits, int x, int y, int width, int height);
+    void GetPosition(int *x, int *y, int *width, int *height) const;
     void OnParentMove();
     void OnParentSize();
+    // 表示中のOSDのイメージをhdcに合成する
+    void Compose(HDC hdc, int left, int top) const;
 private:
     CPseudoOSD(const CPseudoOSD &);
     CPseudoOSD &operator=(const CPseudoOSD &);
+    void SetPosition(int x, int y, int width, int height);
     void Update();
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -32,6 +34,7 @@ private:
     int m_width;
     int m_height;
     HBITMAP m_hbm;
+    void *m_pBits;
     bool m_fHide;
 };
 

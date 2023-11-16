@@ -37,6 +37,29 @@ EstimateViewerDelay
     表示遅延の精度を高める[=1]かどうか
     # TVTestのバッファリングなどの影響で字幕の表示がずれるのを抑制できます。
     # 遅延時間を450ミリ秒と指定したとき適切な遅れになるよう調整しています。
+CaptureFolder
+    キー割り当て「字幕付き画像の保存」の保存先フォルダを絶対パスで指定
+    # たとえば[=C:\CapFolder]とすると、そのフォルダに画像を保存します。
+    # 指定しないと「字幕付き画像の保存」は機能しません。
+CaptureFileName*
+    「字幕付き画像の保存」の画像ファイル名
+    # たとえば[=Capture]とすると、"Capture20121231-235959.bmp"のようになります。
+CaptureFileNameFormat*
+    変数使用可能な「字幕付き画像の保存」の画像ファイル名
+    # こちらはTVTest本体のキャプチャ設定のファイル名のように変数を使用できます。
+    # TVTest ver.0.9.0未満は未対応です。
+    # たとえば[=Capture_%date%-%time%]とすると、"Capture_20121231-235959.bmp"の
+    # ようになります。
+CaptureSaveFormat*
+    「字幕付き画像の保存」の保存形式
+    # [=BMP]か[=JPEG]か[=PNG]を指定してください。
+    # JPEGやPNGの保存にはTVTest_Image.dllが必要です。
+JpegQuality*
+    JPEG品質
+    # [=0]から[=100]まで。
+PngCompressionLevel*
+    PNG圧縮レベル
+    # [=0]から[=9]まで。
 SettingsIndex
     現在選択中の表示設定の番号
     # このキーより下の設定は実行中に切り替え(TVTest設定→キー割り当て→表示設定

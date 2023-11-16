@@ -50,6 +50,7 @@ private:
     int GetSettingsCount() const;
     bool PlayRomSound(int index) const;
     static LRESULT CALLBACK EventCallback(UINT Event, LPARAM lParam1, LPARAM lParam2, void *pClientData);
+    void OnCapture(bool fSaveToFile);
     static BOOL CALLBACK WindowMsgCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT *pResult, void *pUserData);
     void HideOsds(int index, size_t osdPrepareCount = 0);
     void DeleteTextures();
@@ -72,6 +73,12 @@ private:
 
     // 設定
     tstring m_iniPath;
+    tstring m_captureFolder;
+    tstring m_captureFileName;
+    tstring m_captureFileNameFormat;
+    TCHAR m_szCaptureSaveFormat[8];
+    int m_jpegQuality;
+    int m_pngCompressionLevel;
     tstring m_faceName[3];
     int m_settingsIndex;
     int m_paintingMethod;
@@ -87,6 +94,9 @@ private:
     bool m_fIgnoreSmall;
     tstring m_romSoundList;
     bool m_fInitializeSettingsDlg;
+
+    // キャプチャ
+    HMODULE m_hTVTestImage;
 
     // 字幕解析と描画
     std::unique_ptr<aribcaption::Context> m_captionContext[STREAM_MAX];

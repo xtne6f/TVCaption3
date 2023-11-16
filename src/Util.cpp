@@ -1,5 +1,6 @@
 ﻿#define NOMINMAX
 #include <windows.h>
+#include <shlobj.h>
 #include "Util.hpp"
 
 // 必要なバッファを確保してGetPrivateProfileSection()を呼ぶ
@@ -325,4 +326,89 @@ int get_ts_payload_size(const unsigned char *packet)
         }
     }
     return 0;
+}
+
+namespace
+{
+int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
+{
+    static_cast<void>(lParam);
+    if (uMsg == BFFM_INITIALIZED && reinterpret_cast<LPCTSTR>(lpData)[0]) {
+        SendMessage(hwnd, BFFM_SETSELECTION, TRUE, lpData);
+    }
+    return 0;
+}
+}
+
+bool BrowseFolderDialog(HWND hwndOwner, TCHAR (&szDirectory)[MAX_PATH], LPCTSTR pszTitle)
+{
+    TCHAR szDisplayName[MAX_PATH];
+    BROWSEINFO bi;
+    bi.hwndOwner = hwndOwner;
+    bi.pidlRoot = nullptr;
+    bi.pszDisplayName = szDisplayName;
+    bi.lpszTitle = pszTitle;
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+    bi.lpfn = BrowseCallbackProc;
+    bi.lParam = reinterpret_cast<LPARAM>(szDirectory);
+    PIDLIST_ABSOLUTE pidl = SHBrowseForFolder(&bi);
+    if (pidl) {
+        if (SHGetPathFromIDList(pidl, szDirectory)) {
+            CoTaskMemFree(pidl);
+            return true;
+        }
+        CoTaskMemFree(pidl);
+    }
+    return false;
+}
+
+bool SaveImageAsBmp(LPCTSTR fileName, const BITMAPINFOHEADER &bih, const void *pBits)
+{
+    if (bih.biBitCount == 24) {
+        HANDLE hFile = CreateFile(fileName, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (hFile != INVALID_HANDLE_VALUE) {
+            BITMAPFILEHEADER bmfHeader = {};
+            bmfHeader.bfType = 0x4D42;
+            bmfHeader.bfOffBits = sizeof(bmfHeader) + sizeof(bih);
+            bmfHeader.bfSize = bmfHeader.bfOffBits + (bih.biWidth * 3 + 3) / 4 * 4 * bih.biHeight;
+            DWORD dwWritten;
+            WriteFile(hFile, &bmfHeader, sizeof(bmfHeader), &dwWritten, nullptr);
+            WriteFile(hFile, &bih, sizeof(bih), &dwWritten, nullptr);
+            WriteFile(hFile, pBits, bmfHeader.bfSize - bmfHeader.bfOffBits, &dwWritten, nullptr);
+            CloseHandle(hFile);
+            return true;
+        }
+    }
+    return false;
+}
+
+struct ImageSaveInfo
+{
+    LPCTSTR pszFileName;
+    LPCTSTR pszFormat;
+    LPCTSTR pszOption;
+    const BITMAPINFO *pbmi;
+    const void *pBits;
+    LPCTSTR pszComment;
+};
+
+bool SaveImageAsPngOrJpeg(HMODULE hTVTestImage, LPCTSTR fileName, bool pngOrJpeg, int compressionLevelOrQuality, const BITMAPINFOHEADER &bih, const void *pBits)
+{
+    BOOL (WINAPI *pfnSaveImage)(const ImageSaveInfo *) =
+        reinterpret_cast<BOOL (WINAPI *)(const ImageSaveInfo *)>(::GetProcAddress(hTVTestImage, "SaveImage"));
+    if (pfnSaveImage) {
+        ImageSaveInfo info;
+        info.pszFileName = fileName;
+        info.pszFormat = pngOrJpeg ? TEXT("PNG") : TEXT("JPEG");
+        TCHAR option[16];
+        _stprintf_s(option, TEXT("%d"), min(max(compressionLevelOrQuality, 0), pngOrJpeg ? 9 : 100));
+        info.pszOption = option;
+        BITMAPINFO bmi = {};
+        bmi.bmiHeader = bih;
+        info.pbmi = &bmi;
+        info.pBits = pBits;
+        info.pszComment = nullptr;
+        return !!pfnSaveImage(&info);
+    }
+    return false;
 }
