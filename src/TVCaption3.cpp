@@ -14,6 +14,7 @@ const UINT WM_APP_RESET_OSDS = WM_APP + 4;
 
 const TCHAR INFO_PLUGIN_NAME[] = TEXT("TVCaption3");
 const TCHAR INFO_DESCRIPTION[] = TEXT("字幕を表示 (ver.1.0)");
+const int INFO_VERSION = 1;
 const TCHAR TV_CAPTION2_WINDOW_CLASS[] = TEXT("TVTest TVCaption3");
 
 const TCHAR ROMSOUND_ROM_ENABLED[] = TEXT("!00:!01:!02:!03:!04:!05:!06:!07:!08:!09:!10:!11:!12:!13:!14:!15:::");
@@ -390,6 +391,7 @@ void CTVCaption2::LoadSettings()
 {
     std::vector<TCHAR> vbuf = GetPrivateProfileSectionBuffer(TEXT("Settings"), m_iniPath.c_str());
     TCHAR val[SETTING_VALUE_MAX];
+    int iniVer = GetBufferedProfileInt(vbuf.data(), TEXT("Version"), 0);
     m_viewerClockEstimator.SetEnabled(GetBufferedProfileInt(vbuf.data(), TEXT("EstimateViewerDelay"), 1) != 0);
     GetBufferedProfileString(vbuf.data(), TEXT("CaptureFolder"), TEXT(""), val, _countof(val));
     m_captureFolder = val;
@@ -430,6 +432,11 @@ void CTVCaption2::LoadSettings()
     m_fIgnoreSmall      = GetBufferedProfileInt(buf, TEXT("IgnoreSmall"), 0) != 0;
     GetBufferedProfileString(buf, TEXT("RomSoundList"), TEXT(""), val, _countof(val));
     m_romSoundList = val;
+
+    if (iniVer < INFO_VERSION) {
+        // デフォルトの設定キーを出力するため
+        SaveSettings();
+    }
 }
 
 
@@ -437,6 +444,7 @@ void CTVCaption2::LoadSettings()
 void CTVCaption2::SaveSettings() const
 {
     TCHAR section[32] = TEXT("Settings");
+    WritePrivateProfileInt(section, TEXT("Version"), INFO_VERSION, m_iniPath.c_str());
     WritePrivateProfileInt(section, TEXT("EstimateViewerDelay"), m_viewerClockEstimator.GetEnabled(), m_iniPath.c_str());
     WritePrivateProfileString(section, TEXT("CaptureFolder"), m_captureFolder.c_str(), m_iniPath.c_str());
     WritePrivateProfileString(section, TEXT("CaptureFileName"), m_captureFileName.c_str(), m_iniPath.c_str());
