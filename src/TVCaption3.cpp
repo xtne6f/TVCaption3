@@ -10,7 +10,6 @@ namespace
 const UINT WM_APP_RESET_CAPTION = WM_APP + 0;
 const UINT WM_APP_PROCESS_CAPTION = WM_APP + 1;
 const UINT WM_APP_DONE_MOVE = WM_APP + 2;
-const UINT WM_APP_DONE_SIZE = WM_APP + 3;
 const UINT WM_APP_RESET_OSDS = WM_APP + 4;
 
 const TCHAR INFO_PLUGIN_NAME[] = TEXT("TVCaption3");
@@ -842,7 +841,8 @@ BOOL CALLBACK CTVCaption2::WindowMsgCallback(HWND hwnd, UINT uMsg, WPARAM wParam
         SetTimer(pThis->m_hwndPainting, TIMER_ID_DONE_MOVE, 500, nullptr);
         break;
     case WM_SIZE:
-        SendMessage(pThis->m_hwndPainting, WM_APP_DONE_SIZE, 0, 0);
+        pThis->OnSize(STREAM_CAPTION, true);
+        pThis->OnSize(STREAM_SUPERIMPOSE, true);
         SetTimer(pThis->m_hwndPainting, TIMER_ID_DONE_SIZE, 500, nullptr);
         break;
     }
@@ -919,7 +919,8 @@ LRESULT CALLBACK CTVCaption2::PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wPara
             return 0;
         case TIMER_ID_DONE_SIZE:
             KillTimer(hwnd, TIMER_ID_DONE_SIZE);
-            SendMessage(hwnd, WM_APP_DONE_SIZE, 0, 0);
+            pThis->OnSize(STREAM_CAPTION);
+            pThis->OnSize(STREAM_SUPERIMPOSE);
             return 0;
         }
         break;
@@ -951,10 +952,6 @@ LRESULT CALLBACK CTVCaption2::PaintingWndProc(HWND hwnd, UINT uMsg, WPARAM wPara
                 pThis->m_pOsdList[index][i]->OnParentMove();
             }
         }
-        return 0;
-    case WM_APP_DONE_SIZE:
-        pThis->OnSize(STREAM_CAPTION);
-        pThis->OnSize(STREAM_SUPERIMPOSE);
         return 0;
     case WM_APP_RESET_OSDS:
         DEBUG_OUT(TEXT(__FUNCTION__) TEXT("(): WM_APP_RESET_OSDS\n"));
@@ -1313,13 +1310,16 @@ void CTVCaption2::RenderCaption(STREAM_INDEX index, bool fRedraw)
 }
 
 
-void CTVCaption2::OnSize(STREAM_INDEX index)
+void CTVCaption2::OnSize(STREAM_INDEX index, bool fFast)
 {
     for (size_t i = 0; i < m_pOsdList[index].size(); ++i) {
         m_pOsdList[index][i]->OnParentSize();
     }
-    // 再描画
-    RenderCaption(index, true);
+    // 合成時は映像と共に拡大縮小されるので頻繁な再描画を省略する
+    if (!fFast || m_paintingMethod != 3) {
+        // 再描画
+        RenderCaption(index, true);
+    }
 }
 
 

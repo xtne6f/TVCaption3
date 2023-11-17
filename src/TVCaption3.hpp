@@ -61,7 +61,7 @@ private:
     bool ResetCaptionContext(STREAM_INDEX index);
     void ProcessCaption(std::vector<std::vector<BYTE>> &streamPesQueue);
     void RenderCaption(STREAM_INDEX index, bool fRedraw);
-    void OnSize(STREAM_INDEX index);
+    void OnSize(STREAM_INDEX index, bool fFast = false);
     static BOOL CALLBACK StreamCallback(BYTE *pData, void *pClientData);
     static LRESULT CALLBACK VideoStreamCallback(DWORD Format, const void *pData, SIZE_T Size, void *pClientData);
     void ProcessPacket(BYTE *pPacket);
