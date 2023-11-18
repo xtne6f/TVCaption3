@@ -1003,7 +1003,9 @@ bool CTVCaption2::ResetCaptionContext(STREAM_INDEX index)
     auto context = std::make_unique<aribcaption::Context>();
     context->SetLogcatCallback([this](aribcaption::LogLevel level, const char *message) {
         TCHAR log[256];
-        std::copy(message, message + min(strlen(message) + 1, _countof(log)), log);
+        size_t len = min(strlen(message), _countof(log) - 1);
+        std::copy(message, message + len, log);
+        log[len] = 0;
         m_pApp->AddLog(log, level == aribcaption::LogLevel::kError ? TVTest::LOG_TYPE_ERROR :
                             level == aribcaption::LogLevel::kWarning ? TVTest::LOG_TYPE_WARNING : TVTest::LOG_TYPE_INFORMATION);
     });
