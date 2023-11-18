@@ -13,7 +13,7 @@ const UINT WM_APP_DONE_MOVE = WM_APP + 2;
 const UINT WM_APP_RESET_OSDS = WM_APP + 4;
 
 const TCHAR INFO_PLUGIN_NAME[] = TEXT("TVCaption3");
-const TCHAR INFO_DESCRIPTION[] = TEXT("字幕を表示 (ver.1.1)");
+const TCHAR INFO_DESCRIPTION[] = TEXT("字幕を表示 (ver.1.2)");
 const int INFO_VERSION = 1;
 const TCHAR TV_CAPTION2_WINDOW_CLASS[] = TEXT("TVTest TVCaption3");
 

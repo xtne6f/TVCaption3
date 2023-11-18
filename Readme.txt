@@ -1,4 +1,4 @@
-﻿TVTest TVCaption3 Plugin ver.1.1
+﻿TVTest TVCaption3 Plugin ver.1.2
 
 ■概要
 TVCaptionMod2の字幕のデコードやレンダリング周りをlibaribcaption(
