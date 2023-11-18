@@ -1187,7 +1187,15 @@ void CTVCaption2::RenderCaption(STREAM_INDEX index, bool fRedraw)
             auto renderStatus = aribcaption::RenderStatus::kError;
             try {
                 if (m_showFlags[index] != 0) {
-                    renderStatus = m_captionRenderer[index]->Render(m_renderedPts[index], renderResult);
+                    if (!fRedraw &&
+                        m_captionRenderer[index]->TryRender(m_renderedPts[index]) == aribcaption::RenderStatus::kGotImageUnchanged)
+                    {
+                        // 描画結果の取得を省略
+                        renderStatus = aribcaption::RenderStatus::kGotImageUnchanged;
+                    }
+                    else {
+                        renderStatus = m_captionRenderer[index]->Render(m_renderedPts[index], renderResult);
+                    }
                 }
             }
             catch (...) {
