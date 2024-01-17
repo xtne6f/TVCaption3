@@ -95,6 +95,10 @@ private:
     tstring m_romSoundList;
     bool m_fInitializeSettingsDlg;
 
+    // コマンド
+    HBITMAP m_hbmSwitchLang;
+    HBITMAP m_hbmSwitchSetting;
+
     // キャプチャ
     HMODULE m_hTVTestImage;
 

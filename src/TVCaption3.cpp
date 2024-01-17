@@ -48,6 +48,8 @@ CTVCaption2::CTVCaption2()
     , m_fReplaceDrcs(false)
     , m_fIgnoreSmall(false)
     , m_fInitializeSettingsDlg(false)
+    , m_hbmSwitchLang(nullptr)
+    , m_hbmSwitchSetting(nullptr)
     , m_hTVTestImage(nullptr)
     , m_hwndPainting(nullptr)
     , m_hwndContainer(nullptr)
@@ -131,12 +133,14 @@ bool CTVCaption2::Initialize()
     ciList[0].State = TVTest::PLUGIN_COMMAND_STATE_DISABLED;
     ciList[0].pszText = L"SwitchLang";
     ciList[0].pszName = L"字幕言語切り替え";
-    ciList[0].hbmIcon = static_cast<HBITMAP>(LoadImage(g_hinstDLL, MAKEINTRESOURCE(IDB_SWITCH_LANG), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    m_hbmSwitchLang = static_cast<HBITMAP>(LoadImage(g_hinstDLL, MAKEINTRESOURCE(IDB_SWITCH_LANG), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    ciList[0].hbmIcon = m_hbmSwitchLang;
     ciList[1].ID = ID_COMMAND_SWITCH_SETTING;
     ciList[1].State = TVTest::PLUGIN_COMMAND_STATE_DISABLED;
     ciList[1].pszText = L"SwitchSetting";
     ciList[1].pszName = L"表示設定切り替え";
-    ciList[1].hbmIcon = static_cast<HBITMAP>(LoadImage(g_hinstDLL, MAKEINTRESOURCE(IDB_SWITCH_SETTING), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    m_hbmSwitchSetting = static_cast<HBITMAP>(LoadImage(g_hinstDLL, MAKEINTRESOURCE(IDB_SWITCH_SETTING), IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION));
+    ciList[1].hbmIcon = m_hbmSwitchSetting;
     ciList[2].ID = ID_COMMAND_CAPTURE;
     ciList[2].State = 0;
     ciList[2].pszText = L"Capture";
@@ -149,13 +153,10 @@ bool CTVCaption2::Initialize()
     ciList[3].hbmIcon = nullptr;
     for (int i = 0; i < _countof(ciList); ++i) {
         ciList[i].Size = sizeof(ciList[0]);
-        ciList[i].Flags = ciList[i].hbmIcon ? TVTest::PLUGIN_COMMAND_FLAG_ICONIZE : 0;
+        ciList[i].Flags = ciList[i].hbmIcon ? TVTest::PLUGIN_COMMAND_FLAG_ICONIZE | TVTest::PLUGIN_COMMAND_FLAG_NOTIFYDRAWICON : 0;
         ciList[i].pszDescription = ciList[i].pszName;
         if (!m_pApp->RegisterPluginCommand(&ciList[i])) {
             m_pApp->RegisterCommand(ciList[i].ID, ciList[i].pszText, ciList[i].pszName);
-        }
-        if (ciList[i].hbmIcon) {
-            DeleteObject(ciList[i].hbmIcon);
         }
     }
 
@@ -170,6 +171,14 @@ bool CTVCaption2::Finalize()
 {
     if (m_pApp->IsPluginEnabled()) EnablePlugin(false);
     m_osdCompositor.Uninitialize();
+    if (m_hbmSwitchLang) {
+        DeleteObject(m_hbmSwitchLang);
+        m_hbmSwitchLang = nullptr;
+    }
+    if (m_hbmSwitchSetting) {
+        DeleteObject(m_hbmSwitchSetting);
+        m_hbmSwitchSetting = nullptr;
+    }
     return true;
 }
 
@@ -665,6 +674,47 @@ LRESULT CALLBACK CTVCaption2::EventCallback(UINT Event, LPARAM lParam1, LPARAM l
         // フィルタグラフの終了処理開始
         pThis->m_osdCompositor.OnFilterGraphFinalize(reinterpret_cast<const TVTest::FilterGraphInfo*>(lParam1)->pGraphBuilder);
         break;
+    case TVTest::EVENT_DRAWCOMMANDICON:
+        // コマンドアイコンの描画
+        {
+            const TVTest::DrawCommandIconInfo *pInfo = reinterpret_cast<const TVTest::DrawCommandIconInfo*>(lParam1);
+            HBITMAP hbm = pInfo->ID == ID_COMMAND_SWITCH_LANG ? pThis->m_hbmSwitchLang :
+                          pInfo->ID == ID_COMMAND_SWITCH_SETTING ? pThis->m_hbmSwitchSetting : nullptr;
+            if (hbm) {
+                // TVTest本体のリサイズが汚いのでここで処理する
+                BITMAPINFOHEADER bih = {};
+                bih.biSize = sizeof(BITMAPINFOHEADER);
+                bih.biWidth = pInfo->DrawRect.right - pInfo->DrawRect.left;
+                bih.biHeight = pInfo->DrawRect.bottom - pInfo->DrawRect.top;
+                bih.biPlanes = 1;
+                bih.biBitCount = 24;
+                bih.biCompression = BI_RGB;
+                void *pBits;
+                HBITMAP hbmTmp = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&bih), DIB_RGB_COLORS, &pBits, nullptr, 0);
+                if (hbmTmp) {
+                    bool fRet = false;
+                    HDC hdcTmp = CreateCompatibleDC(pInfo->hdc);
+                    if (hdcTmp) {
+                        HBITMAP hbmOld = static_cast<HBITMAP>(SelectObject(hdcTmp, hbmTmp));
+                        fRet = StretchDrawBitmap(hdcTmp, 0, 0, bih.biWidth, bih.biHeight, hbm, STRETCH_HALFTONE, STRETCH_DELETESCANS);
+                        SelectObject(hdcTmp, hbmOld);
+                        DeleteDC(hdcTmp);
+                        TVTest::ThemeDrawIconInfo drawInfo = {};
+                        drawInfo.pszStyle = pInfo->pszStyle;
+                        drawInfo.hdc = pInfo->hdc;
+                        drawInfo.hbm = hbmTmp;
+                        drawInfo.DstRect = pInfo->DrawRect;
+                        SetRect(&drawInfo.SrcRect, 0, 0, bih.biWidth, bih.biHeight);
+                        drawInfo.Color = pInfo->Color;
+                        drawInfo.Opacity = pInfo->Opacity;
+                        fRet = fRet && pThis->m_pApp->ThemeDrawIcon(&drawInfo);
+                    }
+                    DeleteObject(hbmTmp);
+                    return fRet;
+                }
+            }
+        }
+        break;
     }
     return 0;
 }
@@ -713,26 +763,14 @@ void CTVCaption2::OnCapture(bool fSaveToFile)
                         HDC hdc = CreateCompatibleDC(nullptr);
                         if (hdc) {
                             HBITMAP hbmResOld = static_cast<HBITMAP>(SelectObject(hdc, hbmRes));
-                            HDC hdcSrc = CreateCompatibleDC(hdc);
-                            if (hdcSrc) {
-                                HBITMAP hbmOld = static_cast<HBITMAP>(SelectObject(hdcSrc, hbm));
-                                int oldStretchMode = SetStretchBltMode(hdc, STRETCH_HALFTONE);
-                                StretchBlt(hdc, 0, 0, bihRes.biWidth, bihRes.biHeight, hdcSrc, 0, 0, bih.biWidth, bih.biHeight, SRCCOPY);
-                                SetStretchBltMode(hdc, oldStretchMode);
-                                SelectObject(hdcSrc, hbmOld);
-                                DeleteDC(hdcSrc);
-                                DeleteObject(hbm);
-                                hbm = hbmRes;
-                                bih = bihRes;
-                                pBits = pBitsRes;
-                                hbmRes = nullptr;
-                            }
+                            StretchDrawBitmap(hdc, 0, 0, bihRes.biWidth, bihRes.biHeight, hbm);
                             SelectObject(hdc, hbmResOld);
                             DeleteDC(hdc);
                         }
-                        if (hbmRes) {
-                            DeleteObject(hbmRes);
-                        }
+                        DeleteObject(hbm);
+                        hbm = hbmRes;
+                        bih = bihRes;
+                        pBits = pBitsRes;
                     }
                 }
 

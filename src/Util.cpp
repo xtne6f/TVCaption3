@@ -412,3 +412,24 @@ bool SaveImageAsPngOrJpeg(HMODULE hTVTestImage, LPCTSTR fileName, bool pngOrJpeg
     }
     return false;
 }
+
+bool StretchDrawBitmap(HDC hdc, int x, int y, int width, int height, HBITMAP hbm, int stretchMode, int halfSizeStretchMode)
+{
+    BITMAP bm;
+    if (GetObject(hbm, sizeof(BITMAP), &bm)) {
+        HDC hdcSrc = CreateCompatibleDC(hdc);
+        if (hdcSrc) {
+            HBITMAP hbmOld = static_cast<HBITMAP>(SelectObject(hdcSrc, hbm));
+            int oldStretchMode = SetStretchBltMode(hdc,
+                bm.bmWidth == width && bm.bmHeight == height ? STRETCH_DELETESCANS :
+                (bm.bmWidth == width || bm.bmWidth == width * 2) &&
+                (bm.bmHeight == height || bm.bmHeight == height * 2) && halfSizeStretchMode ? halfSizeStretchMode : stretchMode);
+            bool fRet = !!StretchBlt(hdc, x, y, width, height, hdcSrc, 0, 0, bm.bmWidth, bm.bmHeight, SRCCOPY);
+            SetStretchBltMode(hdc, oldStretchMode);
+            SelectObject(hdcSrc, hbmOld);
+            DeleteDC(hdcSrc);
+            return fRet;
+        }
+    }
+    return false;
+}
